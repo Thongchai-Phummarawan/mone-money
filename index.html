@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mone-money 💰</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#080d1a;--bg2:#0f1629;--bg3:#1a2035;--bg4:#252d42;
+  --pri:#6366f1;--sky:#0ea5e9;--grn:#10b981;--red:#ef4444;--amb:#f59e0b;--pur:#8b5cf6;
+  --txt:#f1f5f9;--dim:#64748b;--dim2:#94a3b8;--bdr:#1a2035;
+  --safe:env(safe-area-inset-bottom,0px)
+}
+html,body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Sarabun',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+body{max-width:480px;margin:0 auto;position:relative}
+
+/* Auth Screen */
+#authScreen{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:28px 20px;background:radial-gradient(ellipse at top,rgba(99,102,241,.15) 0%,transparent 60%)}
+.auth-logo{font-size:52px;margin-bottom:12px}
+.auth-title{font-size:26px;font-weight:900;background:linear-gradient(135deg,var(--pri),var(--sky));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--dim);margin-bottom:32px;text-align:center;line-height:1.6}
+.auth-card{background:var(--bg2);border:1px solid var(--bdr);border-radius:20px;padding:22px;width:100%;max-width:380px}
+.auth-tabs{display:flex;background:var(--bg3);border-radius:12px;padding:4px;margin-bottom:18px}
+.auth-tabs button{flex:1;background:transparent;border:none;color:var(--dim);padding:9px;border-radius:9px;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s}
+.auth-tabs button.active{background:var(--pri);color:#fff}
+.auth-field{margin-bottom:12px}
+.auth-field label{display:block;font-size:11px;color:var(--dim2);font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.auth-field input{width:100%;background:var(--bg3);border:1px solid var(--bdr);color:var(--txt);padding:12px 14px;border-radius:11px;font-size:15px;font-family:inherit;outline:none;transition:border-color .15s}
+.auth-field input:focus{border-color:var(--pri);box-shadow:0 0 0 3px rgba(99,102,241,.18)}
+.auth-btn{width:100%;background:linear-gradient(135deg,var(--pri),var(--sky));border:none;color:#fff;padding:13px;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;margin-top:6px;font-family:inherit;transition:opacity .15s}
+.auth-btn:active{opacity:.85}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed}
+.auth-err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:10px 12px;font-size:12px;color:#fca5a5;margin-bottom:10px;display:none}
+.auth-err.show{display:block}
+.auth-note{text-align:center;font-size:11px;color:var(--dim);margin-top:12px}
+
+/* Topbar */
+.topbar{position:sticky;top:0;z-index:50;padding:12px 16px 10px;display:flex;justify-content:space-between;align-items:center;background:rgba(8,13,26,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr)}
+.topbar h1{font-size:17px;font-weight:800;background:linear-gradient(135deg,var(--pri),var(--sky));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.topbar-right{display:flex;gap:8px;align-items:center}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--grn);flex-shrink:0}
+.sync-dot.syncing{background:var(--amb);animation:pulse 1s infinite}
+.sync-dot.error{background:var(--red)}
+.ai-pill{background:linear-gradient(135deg,var(--pri),var(--sky));border:none;color:#fff;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
+.user-btn{background:var(--bg3);border:1px solid var(--bdr);color:var(--dim2);padding:6px 10px;border-radius:999px;font-size:11px;cursor:pointer}
+
+/* Nav */
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(15,22,41,.97);backdrop-filter:blur(12px);border-top:1px solid var(--bdr);display:grid;grid-template-columns:repeat(5,1fr);padding:5px 2px calc(5px + var(--safe));z-index:60}
+.nb{background:transparent;border:none;color:var(--dim);padding:6px 2px;font-size:9.5px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border-radius:8px}
+.nb .ni{font-size:21px;line-height:1}
+.nb.active{color:var(--pri)}
+.nb.fab .ni{background:linear-gradient(135deg,var(--pri),var(--sky));width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 20px rgba(99,102,241,.5)}
+
+/* App Layout */
+#appWrap{display:none;padding-bottom:calc(68px + var(--safe))}
+main{padding:14px}
+.view{display:none;animation:fi .18s ease}
+.view.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* Onboarding */
+.ob-wrap{min-height:calc(100vh - 68px);display:flex;flex-direction:column;justify-content:center;padding:20px}
+.ob-prog{display:flex;gap:6px;margin-bottom:28px;justify-content:center}
+.ob-dot{height:6px;border-radius:3px;background:var(--bg4);transition:all .3s}
+.ob-dot.done{background:var(--grn);width:22px}.ob-dot.active{background:var(--pri);width:30px}.ob-dot.todo{width:10px}
+.ob-icon{font-size:52px;text-align:center;margin-bottom:14px}
+.ob-title{font-size:22px;font-weight:800;text-align:center;margin-bottom:8px}
+.ob-sub{font-size:13px;color:var(--dim2);text-align:center;margin-bottom:26px;line-height:1.65}
+.ob-field{background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:10px}
+.ob-field label{display:block;font-size:11px;color:var(--dim2);font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.ob-field input,.ob-field select{width:100%;background:transparent;border:none;color:var(--txt);font-size:20px;font-weight:700;font-family:inherit;outline:none}
+.ob-field .unit{font-size:11px;color:var(--dim);margin-top:3px}
+.ob-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.ob-cat{background:var(--bg2);border:1.5px solid var(--bdr);border-radius:12px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s}
+.ob-cat .icon{font-size:22px;margin-bottom:4px}
+.ob-cat .name{font-size:11px;font-weight:600}
+.ob-cat.active{border-color:var(--pri);background:rgba(99,102,241,.18)}
+.ob-skip{text-align:center;margin-top:10px}
+.ob-skip button{background:none;border:none;color:var(--dim);font-size:12px;cursor:pointer;text-decoration:underline}
+
+/* Cards & KPI */
+.card{background:var(--bg2);border:1px solid var(--bdr);border-radius:16px;padding:14px;margin-bottom:11px}
+.card-t{font-size:11px;color:var(--dim2);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:10px}
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px}
+.kpi{background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:13px}
+.kpi.hero{grid-column:1/-1;background:linear-gradient(135deg,var(--pri),var(--sky));border:none;padding:18px}
+.kpi .lbl{font-size:11px;color:var(--dim2);font-weight:500}
+.kpi.hero .lbl{color:rgba(255,255,255,.8);font-size:12px}
+.kpi .val{font-size:21px;font-weight:800;margin-top:3px}
+.kpi.hero .val{font-size:30px;color:#fff}
+.kpi .sub{font-size:10px;color:var(--dim);margin-top:3px}
+.kpi.hero .sub{color:rgba(255,255,255,.65)}
+.c-grn{color:var(--grn)!important}.c-red{color:var(--red)!important}.c-amb{color:var(--amb)!important}
+
+/* AI Panel */
+.ai-panel{border-radius:16px;border:1px solid rgba(99,102,241,.3);background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(14,165,233,.06));padding:14px;margin-bottom:11px}
+.ai-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ai-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--pri),var(--sky));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.ai-name{font-size:13px;font-weight:700;color:#a5b4fc}
+.ai-sub2{font-size:10px;color:var(--dim)}
+.ai-body{font-size:13px;line-height:1.75;color:#e2e8f0;min-height:44px}
+.ai-body.dim{color:var(--dim);font-style:italic}
+.ai-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.ac{background:rgba(99,102,241,.14);border:1px solid rgba(99,102,241,.28);color:#a5b4fc;padding:5px 11px;border-radius:999px;font-size:11px;cursor:pointer}
+.ac:active{transform:scale(.96)}
+
+/* Alert */
+.alert{display:flex;gap:10px;padding:10px 12px;border-radius:12px;margin-bottom:7px;border-left:3px solid;font-size:12px;line-height:1.5}
+.alert .aico{font-size:18px;flex-shrink:0}
+.alert strong{display:block;font-weight:700;margin-bottom:2px}
+.alert.danger{background:rgba(239,68,68,.1);border-color:var(--red);color:#fca5a5}
+.alert.warning{background:rgba(245,158,11,.1);border-color:var(--amb);color:#fde68a}
+.alert.success{background:rgba(16,185,129,.08);border-color:var(--grn);color:#6ee7b7}
+
+/* Budget */
+.brow{margin-bottom:9px}
+.brow .btop{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px}
+.prog{height:7px;background:var(--bg4);border-radius:4px;overflow:hidden}
+.pf{height:100%;border-radius:4px}
+
+/* Add Form */
+.type-tabs{display:flex;background:var(--bg3);border-radius:12px;padding:4px;margin-bottom:14px}
+.type-tabs button{flex:1;background:transparent;border:none;color:var(--dim);padding:10px;border-radius:9px;font-weight:700;font-size:14px;cursor:pointer}
+.type-tabs button.active{background:var(--pri);color:#fff}
+.type-tabs button.active.inc{background:var(--grn)}
+.amt-display{background:var(--bg2);border:1px solid var(--bdr);border-radius:16px;padding:20px;margin-bottom:12px;text-align:center}
+.amt-display .cur{font-size:12px;color:var(--dim)}
+.amt-display .num{font-size:42px;font-weight:800;margin-top:4px}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.keypad button{background:var(--bg3);border:1px solid var(--bdr);color:var(--txt);padding:16px;border-radius:12px;font-size:19px;font-weight:700;cursor:pointer}
+.keypad button:active{background:var(--bg4);transform:scale(.96)}
+.keypad button.del{color:var(--red)}
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:14px}
+.cbt{background:var(--bg2);border:1.5px solid var(--bdr);color:var(--txt);padding:8px 4px;border-radius:12px;font-size:10px;text-align:center;cursor:pointer;min-height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.cbt .ci{font-size:21px}
+.cbt.sel{border-color:var(--pri);background:rgba(99,102,241,.18)}
+.form-row{margin-bottom:10px}
+.form-row label{display:block;font-size:11px;color:var(--dim2);margin-bottom:5px;font-weight:600}
+.form-row input,.form-row select,.form-row textarea{width:100%;background:var(--bg3);border:1px solid var(--bdr);color:var(--txt);padding:11px 13px;border-radius:11px;font-size:14px;font-family:inherit;outline:none}
+.form-row input:focus,.form-row select:focus{border-color:var(--pri)}
+
+/* Buttons */
+.btn{background:var(--pri);color:#fff;border:none;padding:13px 16px;border-radius:12px;font-weight:700;font-size:14px;width:100%;cursor:pointer;font-family:inherit}
+.btn:active{transform:scale(.97)}
+.btn-grn{background:var(--grn)}.btn-red{background:var(--red)}.btn-gray{background:var(--bg3);color:var(--txt)}.btn-row{display:flex;gap:8px}.btn-row .btn{flex:1}.btn-sm{padding:8px 10px;font-size:12px;border-radius:9px}
+
+/* Txn */
+.txn-item{display:flex;gap:10px;padding:11px 12px;background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;margin-bottom:6px;align-items:center;cursor:pointer}
+.txn-item:active{background:var(--bg3)}
+.t-ico{font-size:22px;width:36px;text-align:center;flex-shrink:0}
+.t-inf{flex:1;min-width:0}
+.t-nm{font-size:13px;font-weight:600}
+.t-mt{font-size:11px;color:var(--dim);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-amt{font-size:14px;font-weight:800;flex-shrink:0}
+.t-amt.exp{color:var(--red)}.t-amt.inc{color:var(--grn)}
+.day-hdr{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;padding:8px 4px 4px;font-weight:700}
+
+/* Debt */
+.dc{background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:13px;margin-bottom:9px}
+.dc-ttl{font-weight:700;font-size:14px;margin-bottom:8px}
+.dc-row{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin-bottom:4px}
+.dc-row strong{color:var(--txt)}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg);width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:18px 16px calc(20px + var(--safe));max-height:90vh;overflow-y:auto;animation:su .22s ease;position:relative}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal h3{font-size:16px;font-weight:800;margin-bottom:14px}
+.modal-x{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--dim);font-size:22px;cursor:pointer}
+
+/* Chat */
+.chat-box{background:var(--bg3);border-radius:14px;padding:14px;min-height:160px;max-height:300px;overflow-y:auto;margin-bottom:10px;display:flex;flex-direction:column;gap:10px}
+.msg.user{align-self:flex-end}
+.msg.user .bbl{background:linear-gradient(135deg,var(--pri),var(--sky));color:#fff;padding:9px 13px;border-radius:16px 16px 4px 16px;font-size:13px;max-width:82%;line-height:1.5}
+.msg.ai .bbl{background:var(--bg2);border:1px solid var(--bdr);padding:9px 13px;border-radius:16px 16px 16px 4px;font-size:13px;max-width:88%;line-height:1.6}
+.chat-input-row{display:flex;gap:8px}
+.chat-input-row input{flex:1;background:var(--bg3);border:1px solid var(--bdr);color:var(--txt);padding:11px 13px;border-radius:11px;font-size:13px;font-family:inherit;outline:none}
+.chat-input-row input:focus{border-color:var(--pri)}
+.chat-input-row button{background:linear-gradient(135deg,var(--pri),var(--sky));border:none;color:#fff;padding:11px 15px;border-radius:11px;font-size:18px;cursor:pointer}
+
+/* Toast */
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--grn);color:#fff;padding:10px 20px;border-radius:999px;font-size:13px;font-weight:700;z-index:999;opacity:0;pointer-events:none;transition:opacity .2s,top .2s;box-shadow:0 4px 20px rgba(0,0,0,.4);white-space:nowrap}
+.toast.show{opacity:1;top:80px}
+.toast.err{background:var(--red)}
+
+/* Misc */
+.canvas-wrap{position:relative;height:190px}
+.empty{text-align:center;padding:32px 16px;color:var(--dim);font-size:13px}
+.ei{font-size:44px;opacity:.35;margin-bottom:8px}
+.filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px}
+.chip{background:var(--bg2);border:1px solid var(--bdr);color:var(--dim);padding:6px 12px;border-radius:999px;font-size:12px;white-space:nowrap;cursor:pointer}
+.chip.active{background:var(--pri);color:#fff;border-color:var(--pri)}
+.flex-sb{display:flex;justify-content:space-between;align-items:center}
+.mt2{margin-top:8px}.mb2{margin-bottom:8px}
+.pulse{animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.tag{display:inline-block;padding:2px 7px;border-radius:999px;font-size:9px;font-weight:700}
+.tag.fix{background:rgba(99,102,241,.15);color:#a5b4fc}
+.tag.var{background:rgba(245,158,11,.12);color:#fcd34d}
+.divider{border:none;border-top:1px solid var(--bdr);margin:10px 0}
+.loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:14px}
+.loading-screen .logo{font-size:48px}
+.loading-screen .ltxt{font-size:14px;color:var(--dim)}
+.spinner{width:32px;height:32px;border:3px solid var(--bdr);border-top-color:var(--pri);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="logo">💰</div>
+  <div class="spinner"></div>
+  <div class="ltxt">กำลังโหลด...</div>
+</div>
+
+<!-- Auth -->
+<div id="authScreen" style="display:none">
+  <div class="auth-logo">💰</div>
+  <div class="auth-title">Mone-money</div>
+  <div class="auth-sub">AI Financial Advisor<br>ติดตามการเงินส่วนตัว · ซิงค์ทุกอุปกรณ์</div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="active" id="tabLogin" onclick="Auth.showTab('login')">เข้าสู่ระบบ</button>
+      <button id="tabRegister" onclick="Auth.showTab('register')">สมัครใหม่</button>
+    </div>
+    <div class="auth-err" id="authErr"></div>
+    <div id="loginForm">
+      <div class="auth-field"><label>Email</label><input type="email" id="loginEmail" placeholder="your@email.com" autocomplete="email"></div>
+      <div class="auth-field"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')Auth.login()"></div>
+      <button class="auth-btn" id="loginBtn" onclick="Auth.login()">🔐 เข้าสู่ระบบ</button>
+    </div>
+    <div id="registerForm" style="display:none">
+      <div class="auth-field"><label>ชื่อ (ที่ Mona จะเรียก)</label><input type="text" id="regName" placeholder="เช่น แม็ค, วิน..."></div>
+      <div class="auth-field"><label>Email</label><input type="email" id="regEmail" placeholder="your@email.com" autocomplete="email"></div>
+      <div class="auth-field"><label>Password (อย่างน้อย 6 ตัว)</label><input type="password" id="regPass" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')Auth.register()"></div>
+      <button class="auth-btn" id="regBtn" onclick="Auth.register()">✨ สมัครสมาชิกฟรี</button>
+    </div>
+    <div class="auth-note">🔒 ข้อมูลเข้ารหัสและเก็บบน Supabase Cloud</div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="appWrap" style="display:none">
+  <header class="topbar">
+    <h1>💰 Mone-money</h1>
+    <div class="topbar-right">
+      <div class="sync-dot" id="syncDot" title="ซิงค์สำเร็จ"></div>
+      <button class="ai-pill" onclick="App.openChat()">🤖 Mona AI</button>
+      <button class="user-btn" onclick="App.showUserMenu()" id="userBtn">👤</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="onboardArea"></div>
+    <div id="appViews" style="display:none">
+      <section class="view active" id="view-dashboard"></section>
+      <section class="view" id="view-add"></section>
+      <section class="view" id="view-txns"></section>
+      <section class="view" id="view-debt"></section>
+      <section class="view" id="view-settings"></section>
+    </div>
+  </main>
+
+  <nav class="bnav" id="bnav" style="display:none">
+    <button class="nb active" data-tab="dashboard"><span class="ni">📊</span><span>หน้าหลัก</span></button>
+    <button class="nb" data-tab="txns"><span class="ni">📋</span><span>รายการ</span></button>
+    <button class="nb fab" data-tab="add"><span class="ni">＋</span><span>เพิ่ม</span></button>
+    <button class="nb" data-tab="debt"><span class="ni">💳</span><span>หนี้/ผ่อน</span></button>
+    <button class="nb" data-tab="settings"><span class="ni">⚙️</span><span>ตั้งค่า</span></button>
+  </nav>
+</div>
+
+<div class="modal-bg" id="modal"><div class="modal"><button class="modal-x" onclick="App.closeModal()">×</button><div id="mc"></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// SUPABASE CONFIG
+// ══════════════════════════════════════════════════════════
+const SB_URL = 'https://oqcvisqguygqtodndsyp.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xY3Zpc3FndXlncXRvZG5kc3lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMjc0MDksImV4cCI6MjA5MzkwMzQwOX0.B-S5C_fNniKyp97aDYkRwGeR4DPEDNSaJHjUWycAxU8';
+
+// ══════════════════════════════════════════════════════════
+// SUPABASE CLIENT
+// ══════════════════════════════════════════════════════════
+const SB = {
+  headers(token) {
+    const h = { 'Content-Type': 'application/json', 'apikey': SB_KEY };
+    if (token) h['Authorization'] = 'Bearer ' + token;
+    else h['Authorization'] = 'Bearer ' + SB_KEY;
+    return h;
+  },
+
+  async signUp(email, password, name) {
+    const r = await fetch(`${SB_URL}/auth/v1/signup`, {
+      method: 'POST', headers: this.headers(),
+      body: JSON.stringify({
+        email, password,
+        data: { name },
+        options: { emailRedirectTo: null }
+      })
+    });
+    const d = await r.json();
+    // If user already exists or needs confirm, try direct login
+    if (d.user || d.access_token) return d;
+    // Try sign in directly (user might already exist)
+    return this.signIn(email, password);
+  },
+
+  async signIn(email, password) {
+    const r = await fetch(`${SB_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST', headers: this.headers(),
+      body: JSON.stringify({ email, password })
+    });
+    return r.json();
+  },
+
+  async signOut(token) {
+    await fetch(`${SB_URL}/auth/v1/logout`, {
+      method: 'POST', headers: this.headers(token)
+    });
+  },
+
+  async getUser(token) {
+    const r = await fetch(`${SB_URL}/auth/v1/user`, { headers: this.headers(token) });
+    return r.json();
+  },
+
+  // Generic DB operations — auto-create tables via upsert
+  async upsert(table, data, token) {
+    const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: { ...this.headers(token), 'Prefer': 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify(data)
+    });
+    return r.json();
+  },
+
+  async select(table, filter, token) {
+    const q = filter ? '?' + filter : '';
+    const r = await fetch(`${SB_URL}/rest/v1/${table}${q}`, { headers: this.headers(token) });
+    if (!r.ok) return [];
+    return r.json();
+  },
+
+  async delete(table, id, token) {
+    await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {
+      method: 'DELETE', headers: this.headers(token)
+    });
+  },
+
+  async rpc(fn, params, token) {
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
+      method: 'POST', headers: this.headers(token),
+      body: JSON.stringify(params)
+    });
+    return r.json();
+  }
+};
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let SESSION = null;   // { access_token, user }
+let PROFILE = null;   // from DB
+let DATA = {          // local cache — synced to/from Supabase
+  settings: { savings: 0, income: 0, safetyMonths: 3, debtThreshold: 40, savingsUpdated: td() },
+  categories: [],
+  transactions: [],
+  installments: [],
+  aiLog: []
+};
+let syncTimer = null;
+
+const LSK = 'mone_session';
+
+// ══════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════
+function td() { return new Date().toISOString().slice(0,10); }
+function mOf(d) { return d.slice(0,7); }
+function curM() { return td().slice(0,7); }
+const fmt = n => (n<0?'-':'')+'฿'+Math.abs(n).toLocaleString('en-US',{maximumFractionDigits:0});
+const gc = id => DATA.categories.find(c=>c.id===id);
+const gi = id => DATA.installments.find(i=>i.id===id);
+
+function mSum(m) {
+  const t = DATA.transactions.filter(x=>mOf(x.date)===m);
+  const inc = t.filter(x=>x.type==='income').reduce((s,x)=>s+x.amount,0);
+  const exp = t.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);
+  return { inc, exp, net: inc-exp };
+}
+function calcSavings() {
+  let net = 0;
+  const since = DATA.settings.savingsUpdated;
+  DATA.transactions.forEach(x => { if(x.date>=since) net += x.type==='income'?x.amount:-x.amount; });
+  return (DATA.settings.savings||0) + net;
+}
+function debtInfo() {
+  let rem=0, monthly=0;
+  DATA.installments.forEach(i=>{ const ml=Math.max(0,i.total-i.paid); rem+=ml*i.monthly; if(ml>0)monthly+=i.monthly; });
+  return { rem, monthly };
+}
+function byCat(m) {
+  const map = {};
+  DATA.transactions.filter(x=>mOf(x.date)===m&&x.type==='expense').forEach(x=>{ map[x.cat||'c_other']=(map[x.cat||'c_other']||0)+x.amount; });
+  return map;
+}
+function todaySpent() {
+  return DATA.transactions.filter(x=>x.date===td()&&x.type==='expense').reduce((s,x)=>s+x.amount,0);
+}
+function localRisk() {
+  const alerts=[];
+  const { inc, exp } = mSum(curM());
+  const sav = calcSavings();
+  const debt = debtInfo();
+  const ratio = (debt.monthly/(DATA.settings.income||1))*100;
+  const bc = byCat(curM());
+
+  if(exp>inc&&(inc||exp))
+    alerts.push({sev:'danger',icon:'🔻',title:'รายจ่ายเกินรายรับเดือนนี้',body:`เกินมา ${fmt(exp-inc)}`});
+
+  const dOfMonth = new Date().getDate();
+  const dailyRate = exp>0 ? exp/dOfMonth : 0;
+  const proj14 = dailyRate*14;
+  if(proj14>sav*0.3&&sav>0)
+    alerts.push({sev:'warning',icon:'🔮',title:'ความเสี่ยงสภาพคล่อง 14 วัน',body:`คาดใช้เพิ่มอีก ${fmt(proj14)} ใน 14 วัน`});
+
+  let avgExp = 0, cnt = 0;
+  for(let i=1;i<=3;i++){
+    const d=new Date(new Date().getFullYear(),new Date().getMonth()-i,1);
+    const s=mSum(d.toISOString().slice(0,7));
+    if(s.exp>0){avgExp+=s.exp;cnt++;}
+  }
+  if(!cnt) avgExp=DATA.settings.income*0.7;
+  else avgExp/=cnt;
+  const target = avgExp*DATA.settings.safetyMonths;
+  if(sav<target&&target>0)
+    alerts.push({sev:'warning',icon:'⚠️',title:'เงินสำรองต่ำกว่าเกณฑ์',body:`ควรมี ${fmt(target)} มีแค่ ${fmt(sav)}`});
+
+  if(ratio>DATA.settings.debtThreshold)
+    alerts.push({sev:'danger',icon:'💳',title:'ภาระหนี้สูงเกิน',body:`${ratio.toFixed(0)}% ของรายได้ (เกณฑ์ ${DATA.settings.debtThreshold}%)`});
+
+  DATA.categories.filter(c=>c.budget>0).forEach(c=>{
+    const spent=bc[c.id]||0;
+    if(spent>c.budget) alerts.push({sev:'warning',icon:'📊',title:`เกินงบ: ${c.name}`,body:`ใช้ ${fmt(spent)} / งบ ${fmt(c.budget)}`});
+  });
+  return alerts;
+}
+
+// ══════════════════════════════════════════════════════════
+// SYNC ENGINE
+// ══════════════════════════════════════════════════════════
+function setSyncStatus(state) { // 'ok' | 'syncing' | 'error'
+  const dot = document.getElementById('syncDot');
+  if (!dot) return;
+  dot.className = 'sync-dot' + (state==='syncing'?' syncing':state==='error'?' error':'');
+  dot.title = state==='ok'?'ซิงค์สำเร็จ':state==='syncing'?'กำลังซิงค์...':'ซิงค์ไม่ได้';
+}
+
+async function pushAll() {
+  if (!SESSION) return;
+  setSyncStatus('syncing');
+  const uid = SESSION.user.id;
+  const tok = SESSION.access_token;
+  try {
+    // Upsert profile/settings as one row
+    await SB.upsert('mm_profiles', {
+      id: uid,
+      name: PROFILE?.name || '',
+      settings: DATA.settings,
+      categories: DATA.categories,
+      ai_log: DATA.aiLog.slice(-30),
+      updated_at: new Date().toISOString()
+    }, tok);
+
+    // Upsert transactions in batch (max 100 latest)
+    const txns = DATA.transactions.slice(0,200).map(t=>({ ...t, user_id: uid }));
+    if (txns.length) await SB.upsert('mm_transactions', txns, tok);
+
+    // Upsert installments
+    const insts = DATA.installments.map(i=>({ ...i, user_id: uid }));
+    if (insts.length) await SB.upsert('mm_installments', insts, tok);
+
+    setSyncStatus('ok');
+  } catch(e) {
+    setSyncStatus('error');
+  }
+}
+
+async function pullAll() {
+  if (!SESSION) return;
+  const uid = SESSION.user.id;
+  const tok = SESSION.access_token;
+  setSyncStatus('syncing');
+  try {
+    // Pull profile
+    const profiles = await SB.select('mm_profiles', `id=eq.${uid}`, tok);
+    if (profiles && profiles[0]) {
+      const p = profiles[0];
+      PROFILE = { name: p.name };
+      if (p.settings) DATA.settings = p.settings;
+      if (p.categories && p.categories.length) DATA.categories = p.categories;
+      if (p.ai_log) DATA.aiLog = p.ai_log;
+    }
+
+    // Pull transactions
+    const txns = await SB.select('mm_transactions', `user_id=eq.${uid}&order=date.desc&limit=500`, tok);
+    if (Array.isArray(txns) && txns.length) {
+      DATA.transactions = txns.map(t=>{ const {user_id,...rest}=t; return rest; });
+    }
+
+    // Pull installments
+    const insts = await SB.select('mm_installments', `user_id=eq.${uid}`, tok);
+    if (Array.isArray(insts) && insts.length) {
+      DATA.installments = insts.map(i=>{ const {user_id,...rest}=i; return rest; });
+    }
+    setSyncStatus('ok');
+  } catch(e) {
+    setSyncStatus('error');
+  }
+}
+
+function schedulePush() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(pushAll, 1500);
+}
+
+// ══════════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════════
+const Auth = {
+  showTab(tab) {
+    document.getElementById('loginForm').style.display = tab==='login'?'block':'none';
+    document.getElementById('registerForm').style.display = tab==='register'?'block':'none';
+    document.getElementById('tabLogin').className = tab==='login'?'active':'';
+    document.getElementById('tabRegister').className = tab==='register'?'active':'';
+    this.clearErr();
+  },
+  showErr(msg) {
+    const el = document.getElementById('authErr');
+    el.textContent = msg; el.classList.add('show');
+  },
+  clearErr() { document.getElementById('authErr').classList.remove('show'); },
+
+  async login() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    if (!email||!pass) { this.showErr('กรุณากรอก Email และ Password'); return; }
+    const btn = document.getElementById('loginBtn');
+    btn.disabled=true; btn.textContent='กำลังเข้าสู่ระบบ...';
+    const res = await SB.signIn(email, pass);
+    btn.disabled=false; btn.textContent='🔐 เข้าสู่ระบบ';
+    if (res.error || !res.access_token) { this.showErr(res.error?.message||'Email หรือ Password ไม่ถูกต้อง'); return; }
+    await this.onLogin(res);
+  },
+
+  async register() {
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const pass = document.getElementById('regPass').value;
+    if (!email||!pass) { this.showErr('กรุณากรอก Email และ Password'); return; }
+    if (pass.length<6) { this.showErr('Password ต้องมีอย่างน้อย 6 ตัวอักษร'); return; }
+    const btn = document.getElementById('regBtn');
+    btn.disabled=true; btn.textContent='กำลังสมัคร...';
+    const res = await SB.signUp(email, pass, name);
+    btn.disabled=false; btn.textContent='✨ สมัครสมาชิกฟรี';
+    if (res.error) { this.showErr(res.error.message||'สมัครไม่สำเร็จ'); return; }
+    // Auto sign in
+    const loginRes = await SB.signIn(email, pass);
+    if (!loginRes.access_token) { this.showErr('สมัครสำเร็จ! กรุณา Login ด้านซ้าย'); this.showTab('login'); return; }
+    PROFILE = { name: name || email.split('@')[0] };
+    await this.onLogin(loginRes);
+  },
+
+  async onLogin(res) {
+    SESSION = { access_token: res.access_token, user: res.user };
+    localStorage.setItem(LSK, JSON.stringify({ token: res.access_token, uid: res.user.id }));
+    // Pull data from cloud
+    await pullAll();
+    this.startApp();
+  },
+
+  startApp() {
+    document.getElementById('authScreen').style.display='none';
+    document.getElementById('appWrap').style.display='block';
+    const uBtn = document.getElementById('userBtn');
+    if (uBtn) uBtn.textContent = (PROFILE?.name||SESSION?.user?.email?.split('@')[0]||'👤').slice(0,6);
+
+    if (!DATA.categories.length) {
+      Onboard.start();
+    } else {
+      App.showApp();
+    }
+  }
+};
+
+// ══════════════════════════════════════════════════════════
+// ONBOARDING
+// ══════════════════════════════════════════════════════════
+const DEFAULT_CATS = [
+  {id:'c_house',name:'ที่อยู่อาศัย',icon:'🏠',type:'fix',budget:0},
+  {id:'c_food',name:'อาหาร',icon:'🍱',type:'var',budget:0},
+  {id:'c_fuel',name:'น้ำมัน',icon:'⛽',type:'var',budget:0},
+  {id:'c_phone',name:'โทรศัพท์/เน็ต',icon:'📱',type:'var',budget:0},
+  {id:'c_elec',name:'ค่าไฟ/น้ำ',icon:'💡',type:'var',budget:0},
+  {id:'c_car',name:'ผ่อนรถ',icon:'🚗',type:'fix',budget:0},
+  {id:'c_ins',name:'ประกัน',icon:'🛡️',type:'fix',budget:0},
+  {id:'c_coffee',name:'กาแฟ/ชา',icon:'☕',type:'var',budget:0},
+  {id:'c_social',name:'ค่าสังคม',icon:'🍻',type:'var',budget:0},
+  {id:'c_edu',name:'การศึกษา',icon:'🎓',type:'fix',budget:0},
+  {id:'c_health',name:'สุขภาพ',icon:'⚕️',type:'var',budget:0},
+  {id:'c_family',name:'ครอบครัว',icon:'👨‍👩‍👧',type:'fix',budget:0},
+  {id:'c_invest',name:'ลงทุน/ออม',icon:'📈',type:'var',budget:0},
+  {id:'c_trip',name:'ท่องเที่ยว',icon:'✈️',type:'var',budget:0},
+  {id:'c_beauty',name:'ดูแลตัวเอง',icon:'💅',type:'var',budget:0},
+  {id:'c_other',name:'อื่นๆ',icon:'🔖',type:'var',budget:0},
+];
+
+const Onboard = {
+  step: 0,
+  tmp: { savings:0, income:0, selectedCats:[], catBudgets:{}, installments:[] },
+
+  start() {
+    document.getElementById('onboardArea').style.display='block';
+    document.getElementById('appViews').style.display='none';
+    document.getElementById('bnav').style.display='none';
+    this.render();
+  },
+
+  render() {
+    const el = document.getElementById('onboardArea');
+    const steps = [this.s0,this.s1,this.s2,this.s3,this.s4];
+    el.innerHTML = steps[this.step]?.call(this)||'';
+  },
+
+  dots() {
+    let h='';
+    for(let i=0;i<4;i++){
+      if(i<this.step)h+=`<div class="ob-dot done"></div>`;
+      else if(i===this.step)h+=`<div class="ob-dot active"></div>`;
+      else h+=`<div class="ob-dot todo"></div>`;
+    }
+    return h;
+  },
+
+  next() { this.step++; if(this.step>=4){this.finish();return;} this.render(); },
+
+  s0() {
+    return `<div class="ob-wrap">
+      <div class="ob-prog">${this.dots()}</div>
+      <div class="ob-icon">👋</div>
+      <div class="ob-title">ยินดีต้อนรับ!</div>
+      <div class="ob-sub">ตั้งค่าครั้งเดียว — ข้อมูลซิงค์ทุกอุปกรณ์อัตโนมัติ ☁️</div>
+      <div class="ob-field">
+        <label>รายได้ต่อเดือน (฿)</label>
+        <input type="number" placeholder="0" oninput="Onboard.tmp.income=+this.value">
+        <div class="unit">รายได้ประจำหลักของคุณ</div>
+      </div>
+      <div class="ob-field">
+        <label>เงินเก็บที่มีอยู่ตอนนี้ (฿)</label>
+        <input type="number" placeholder="0" oninput="Onboard.tmp.savings=+this.value">
+        <div class="unit">ยอดรวมทุกบัญชี</div>
+      </div>
+      <button class="btn" onclick="Onboard.next()">ถัดไป →</button>
+    </div>`;
+  },
+
+  s1() {
+    const sel = this.tmp.selectedCats;
+    const budgets = this.tmp.catBudgets;
+    let catHtml = DEFAULT_CATS.map(c=>{
+      const active = sel.includes(c.id);
+      return `<div class="ob-cat ${active?'active':''}" onclick="Onboard.toggleCat('${c.id}')">
+        <div class="icon">${c.icon}</div>
+        <div class="name">${c.name}</div>
+        ${active?`<input type="number" placeholder="งบ/เดือน" value="${budgets[c.id]||''}" onclick="event.stopPropagation()" oninput="Onboard.tmp.catBudgets['${c.id}']=+this.value" style="width:100%;background:transparent;border:none;border-top:1px solid rgba(99,102,241,.3);color:var(--pri);font-size:11px;font-weight:700;text-align:center;outline:none;margin-top:6px;padding-top:5px;font-family:inherit" placeholder="฿/เดือน">`:''}
+      </div>`;
+    }).join('');
+    return `<div class="ob-wrap" style="justify-content:flex-start;padding-top:14px">
+      <div class="ob-prog" style="margin-top:4px">${this.dots()}</div>
+      <div class="ob-icon" style="font-size:40px">🏷️</div>
+      <div class="ob-title" style="font-size:18px">เลือกหมวดค่าใช้จ่าย</div>
+      <div class="ob-sub" style="margin-bottom:16px">เลือกแล้วใส่งบประมาณต่อเดือน</div>
+      <div class="ob-cat-grid">${catHtml}</div>
+      <div class="btn-row">
+        <button class="btn btn-gray" onclick="Onboard.step--;Onboard.render()">← กลับ</button>
+        <button class="btn" onclick="Onboard.next()">ถัดไป →</button>
+      </div>
+      <div class="ob-skip"><button onclick="Onboard.next()">ข้ามขั้นตอนนี้</button></div>
+    </div>`;
+  },
+
+  s2() {
+    const insts = this.tmp.installments;
+    const iHtml = insts.map((inst,idx)=>
+      `<div style="background:var(--bg3);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-weight:700;font-size:13px">${inst.name}</div><div style="font-size:11px;color:var(--dim)">${fmt(inst.monthly)}/เดือน · ${inst.paid}/${inst.total} งวด</div></div>
+        <button style="background:var(--red);border:none;color:#fff;padding:4px 9px;border-radius:7px;font-size:11px;cursor:pointer" onclick="Onboard.removeInst(${idx})">ลบ</button>
+      </div>`).join('');
+    return `<div class="ob-wrap" style="justify-content:flex-start;padding-top:14px">
+      <div class="ob-prog" style="margin-top:4px">${this.dots()}</div>
+      <div class="ob-icon" style="font-size:40px">💳</div>
+      <div class="ob-title" style="font-size:18px">รายการผ่อน/หนี้</div>
+      <div class="ob-sub" style="margin-bottom:16px">เพิ่มรายการที่ผ่อนอยู่ (ถ้ามี)</div>
+      <div id="instList">${iHtml}</div>
+      <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:10px">
+        <div class="form-row"><label>ชื่อรายการ</label><input id="ob_in" placeholder="เช่น ผ่อนบ้าน, รถ..."></div>
+        <div class="btn-row">
+          <div class="form-row" style="flex:1"><label>ผ่อน/เดือน</label><input id="ob_im" type="number" placeholder="0"></div>
+          <div class="form-row" style="flex:1"><label>งวดทั้งหมด</label><input id="ob_it" type="number" placeholder="12"></div>
+          <div class="form-row" style="flex:1"><label>จ่ายแล้ว</label><input id="ob_ip" type="number" placeholder="0"></div>
+        </div>
+        <button class="btn btn-gray btn-sm" onclick="Onboard.addInst()">＋ เพิ่ม</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-gray" onclick="Onboard.step--;Onboard.render()">← กลับ</button>
+        <button class="btn" onclick="Onboard.next()">ถัดไป →</button>
+      </div>
+      <div class="ob-skip"><button onclick="Onboard.next()">ข้าม</button></div>
+    </div>`;
+  },
+
+  s3() {
+    return `<div class="ob-wrap">
+      <div class="ob-prog">${this.dots()}</div>
+      <div class="ob-icon">🎉</div>
+      <div class="ob-title">พร้อมแล้ว!</div>
+      <div class="ob-sub">ข้อมูลจะซิงค์ขึ้น Cloud อัตโนมัติ<br>เข้าใช้งานได้จากทุกอุปกรณ์</div>
+      <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:20px;width:100%">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr);font-size:13px"><span style="color:var(--dim)">รายได้/เดือน</span><strong>${fmt(this.tmp.income)}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr);font-size:13px"><span style="color:var(--dim)">เงินเก็บเริ่มต้น</span><strong>${fmt(this.tmp.savings)}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr);font-size:13px"><span style="color:var(--dim)">หมวดค่าใช้จ่าย</span><strong>${this.tmp.selectedCats.length} หมวด</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px"><span style="color:var(--dim)">รายการผ่อน</span><strong>${this.tmp.installments.length} รายการ</strong></div>
+      </div>
+      <button class="btn" style="font-size:16px;padding:15px" onclick="Onboard.finish()">🚀 เริ่มใช้งาน!</button>
+    </div>`;
+  },
+
+  s4() { this.finish(); },
+
+  toggleCat(id) {
+    const i = this.tmp.selectedCats.indexOf(id);
+    if(i>=0) this.tmp.selectedCats.splice(i,1);
+    else this.tmp.selectedCats.push(id);
+    this.render();
+  },
+  addInst() {
+    const name=document.getElementById('ob_in')?.value.trim();
+    const mon=parseFloat(document.getElementById('ob_im')?.value)||0;
+    const tot=parseInt(document.getElementById('ob_it')?.value)||12;
+    const paid=parseInt(document.getElementById('ob_ip')?.value)||0;
+    if(!name||!mon){App.toast('กรุณาใส่ชื่อและยอดผ่อน','err');return;}
+    this.tmp.installments.push({id:'i'+Date.now(),name,monthly:mon,total:tot,paid,start:td()});
+    this.render();
+  },
+  removeInst(idx){ this.tmp.installments.splice(idx,1); this.render(); },
+
+  async finish() {
+    DATA.settings.savings = this.tmp.savings||0;
+    DATA.settings.income = this.tmp.income||0;
+    DATA.settings.savingsUpdated = td();
+    const sel = this.tmp.selectedCats;
+    DATA.categories = sel.length
+      ? DEFAULT_CATS.filter(c=>sel.includes(c.id)).map(c=>({...c,budget:this.tmp.catBudgets[c.id]||0}))
+      : DEFAULT_CATS.map(c=>({...c,budget:0}));
+    if(!DATA.categories.find(c=>c.id==='c_other'))
+      DATA.categories.push({id:'c_other',name:'อื่นๆ',icon:'🔖',type:'var',budget:0});
+    DATA.installments = this.tmp.installments;
+    await pushAll();
+    App.showApp();
+  }
+};
+
+// ══════════════════════════════════════════════════════════
+// AI
+// ══════════════════════════════════════════════════════════
+function buildSys() {
+  const { inc,exp,net } = mSum(curM());
+  const sav = calcSavings();
+  const debt = debtInfo();
+  const bc = byCat(curM());
+  const al = localRisk();
+  const top = Object.entries(bc).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([id,v])=>`${gc(id)?.name||id}: ${fmt(v)}`).join(' | ');
+  return `คุณคือ "Mona" — AI ที่ปรึกษาการเงินส่วนตัว แอป Mone-money พูดภาษาไทย เป็นกันเอง ฉลาด ตรงไปตรงมา ใช้ emoji พอดี
+
+📊 สถานะการเงินเรียลไทม์:
+• ชื่อ: ${PROFILE?.name||SESSION?.user?.email||'ผู้ใช้'}
+• รายรับเดือนนี้: ${fmt(inc)} | รายจ่าย: ${fmt(exp)} | ส่วนต่าง: ${fmt(net)}
+• เงินเก็บสะสม: ${fmt(sav)} | หนี้คงเหลือ: ${fmt(debt.rem)} | ผ่อน/เดือน: ${fmt(debt.monthly)}
+• รายจ่ายสูงสุด: ${top||'ยังไม่มี'}
+• สัญญาณเตือน: ${al.length?al.map(a=>a.title).join(' | '):'ไม่มี'}
+ตอบกระชับ เจาะจง ใช้ตัวเลขจริง แนะนำสิ่งที่ทำได้เลยทันที`;
+}
+
+async function callAI(msg, history=[]) {
+  const msgs = [...history.slice(-8), {role:'user',content:msg}];
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:buildSys(),messages:msgs})
+    });
+    const d = await r.json();
+    return d.content?.[0]?.text||'ขอโทษ ตอบไม่ได้ตอนนี้';
+  } catch { return 'ไม่สามารถเชื่อมต่อ AI'; }
+}
+
+// ══════════════════════════════════════════════════════════
+// APP
+// ══════════════════════════════════════════════════════════
+const App = {
+  tab: 'dashboard',
+  charts: {},
+  pend: {type:'expense',amount:'0',cat:null,date:td(),note:'',method:'cash',source:'salary'},
+  txnFilter: 'all',
+
+  showApp() {
+    document.getElementById('onboardArea').style.display='none';
+    document.getElementById('appViews').style.display='block';
+    document.getElementById('bnav').style.display='grid';
+    document.querySelectorAll('.nb').forEach(b=>b.addEventListener('click',()=>this.go(b.dataset.tab)));
+    document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')this.closeModal();});
+    this.go('dashboard');
+    // Initial AI greeting if first time
+    if(!DATA.aiLog.length){
+      DATA.aiLog.push({role:'assistant',content:`สวัสดีครับ${PROFILE?.name?' '+PROFILE.name:''}! 👋 ผม Mona พร้อมช่วยวิเคราะห์การเงินของคุณแล้วครับ`});
+    }
+  },
+
+  go(tab) {
+    this.tab=tab;
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+tab)?.classList.add('active');
+    document.querySelectorAll('.nb').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+    window.scrollTo({top:0,behavior:'instant'});
+    this.render();
+  },
+
+  render() {
+    if(this.tab==='dashboard')this.rDash();
+    else if(this.tab==='add')this.rAdd();
+    else if(this.tab==='txns')this.rTxns();
+    else if(this.tab==='debt')this.rDebt();
+    else if(this.tab==='settings')this.rSettings();
+  },
+
+  // ── DASHBOARD ───────────────────────────────────────────
+  rDash() {
+    const v=document.getElementById('view-dashboard');
+    const {inc,exp,net}=mSum(curM());
+    const sav=calcSavings();
+    const ts=todaySpent();
+    const debt=debtInfo();
+    const risks=localRisk();
+
+    let h=`<div class="kgrid">
+      <div class="kpi hero">
+        <div class="lbl">💰 เงินเก็บสะสม${PROFILE?.name?' · '+PROFILE.name:''}</div>
+        <div class="val">${fmt(sav)}</div>
+        <div class="sub">ซิงค์ล่าสุด: ${new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      <div class="kpi"><div class="lbl">จ่ายวันนี้</div><div class="val ${ts>0?'c-amb':''}">${fmt(ts)}</div></div>
+      <div class="kpi"><div class="lbl">ส่วนต่างเดือนนี้</div><div class="val ${net>=0?'c-grn':'c-red'}">${fmt(net)}</div></div>
+      <div class="kpi"><div class="lbl">รายรับเดือนนี้</div><div class="val c-grn">${fmt(inc)}</div></div>
+      <div class="kpi"><div class="lbl">รายจ่ายเดือนนี้</div><div class="val c-red">${fmt(exp)}</div></div>
+      <div class="kpi"><div class="lbl">หนี้คงเหลือ</div><div class="val c-amb">${fmt(debt.rem)}</div></div>
+      <div class="kpi"><div class="lbl">ผ่อน/เดือน</div><div class="val">${fmt(debt.monthly)}</div></div>
+    </div>`;
+
+    // AI Panel
+    const lastAI = DATA.aiLog.filter(m=>m.role==='assistant').slice(-1)[0];
+    h+=`<div class="ai-panel">
+      <div class="ai-hdr">
+        <div class="ai-avatar">🤖</div>
+        <div><div class="ai-name">Mona — AI Financial Advisor</div><div class="ai-sub2" id="aiSub">กดเพื่อวิเคราะห์</div></div>
+      </div>
+      <div class="ai-body ${lastAI?'':'dim'}" id="aiBody">${lastAI?lastAI.content.replace(/\n/g,'<br>'):'เลือกหัวข้อด้านล่างเพื่อให้ Mona วิเคราะห์ให้'}</div>
+      <div class="ai-chips">
+        <button class="ac" onclick="App.qAI('สรุปสถานการณ์การเงินเดือนนี้ พร้อมคะแนนสุขภาพการเงิน')">📊 สรุปเดือนนี้</button>
+        <button class="ac" onclick="App.qAI('วิเคราะห์ความเสี่ยงสภาพคล่อง 14 วันข้างหน้า')">🔮 ความเสี่ยง 14 วัน</button>
+        <button class="ac" onclick="App.qAI('แนะนำ 3 วิธีลดรายจ่ายที่ทำได้ทันที')">✂️ แนะนำประหยัด</button>
+        <button class="ac" onclick="App.qAI('วิเคราะห์ภาระหนี้และแนะนำวิธีจัดการ')">💳 วิเคราะห์หนี้</button>
+        <button class="ac" onclick="App.qAI('ควรออมเงินเดือนละเท่าไหร่และไว้ที่ไหน')">🏦 แผนออมเงิน</button>
+      </div>
+    </div>`;
+
+    // Alerts
+    h+=`<div class="card"><div class="card-t">🚨 การแจ้งเตือน</div>`;
+    if(!risks.length)h+=`<div class="alert success"><div class="aico">✅</div><div><strong>การเงินอยู่ในเกณฑ์ดี</strong>ไม่พบสัญญาณเตือน</div></div>`;
+    else risks.forEach(r=>h+=`<div class="alert ${r.sev}"><div class="aico">${r.icon}</div><div><strong>${r.title}</strong>${r.body}</div></div>`);
+    h+=`</div>`;
+
+    // Budget
+    const bc=byCat(curM());
+    const vCats=DATA.categories.filter(c=>c.budget>0);
+    if(vCats.length){
+      h+=`<div class="card"><div class="card-t">💹 งบประมาณเดือนนี้</div>`;
+      vCats.slice(0,8).forEach(c=>{
+        const spent=bc[c.id]||0;
+        const pct=Math.min(100,(spent/c.budget)*100);
+        const over=spent>c.budget;
+        const col=over?'var(--red)':pct>80?'var(--amb)':'var(--grn)';
+        h+=`<div class="brow"><div class="btop"><span>${c.icon} ${c.name}</span><span style="${over?'color:var(--red)':''}">${fmt(spent)} / ${fmt(c.budget)}</span></div>
+        <div class="prog"><div class="pf" style="width:${pct}%;background:${col}"></div></div></div>`;
+      });
+      h+=`</div>`;
+    }
+
+    h+=`<div class="card"><div class="card-t">📈 รายรับ vs รายจ่าย (6 เดือน)</div><div class="canvas-wrap"><canvas id="flowChart"></canvas></div></div>`;
+    h+=`<div class="card"><div class="card-t">🥧 สัดส่วนรายจ่ายเดือนนี้</div><div class="canvas-wrap"><canvas id="catChart"></canvas></div></div>`;
+
+    v.innerHTML=h;
+    this.rCharts();
+  },
+
+  async qAI(q) {
+    const body=document.getElementById('aiBody');
+    const sub=document.getElementById('aiSub');
+    if(!body)return;
+    body.innerHTML='<span class="pulse">🤖 Mona กำลังวิเคราะห์...</span>';
+    body.className='ai-body dim';
+    if(sub)sub.textContent='กำลังประมวลผล...';
+    const history=DATA.aiLog.slice(-6).map(m=>({role:m.role==='user'?'user':'assistant',content:m.content}));
+    const ans=await callAI(q,history);
+    DATA.aiLog.push({role:'user',content:q},{role:'assistant',content:ans});
+    if(DATA.aiLog.length>30)DATA.aiLog=DATA.aiLog.slice(-30);
+    schedulePush();
+    body.innerHTML=ans.replace(/\n/g,'<br>');
+    body.className='ai-body';
+    if(sub)sub.textContent='วิเคราะห์เสร็จแล้ว ✓';
+  },
+
+  rCharts() {
+    Object.values(this.charts).forEach(c=>c&&c.destroy());
+    this.charts={};
+    Chart.defaults.color='#64748b';
+    Chart.defaults.borderColor='#1a2035';
+    Chart.defaults.font.family='inherit';
+    const now=new Date();
+    const labels=[],inc=[],exp=[];
+    for(let i=5;i>=0;i--){
+      const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+      const s=mSum(d.toISOString().slice(0,7));
+      labels.push(d.toLocaleDateString('th-TH',{month:'short',year:'2-digit'}));
+      inc.push(s.inc);exp.push(s.exp);
+    }
+    const fc=document.getElementById('flowChart');
+    if(fc)this.charts.flow=new Chart(fc,{type:'bar',data:{labels,datasets:[
+      {label:'รายรับ',data:inc,backgroundColor:'rgba(16,185,129,.75)',borderRadius:5},
+      {label:'รายจ่าย',data:exp,backgroundColor:'rgba(239,68,68,.75)',borderRadius:5}
+    ]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v},grid:{color:'#1a2035'}},x:{grid:{display:false}}},plugins:{legend:{labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt(c.parsed.y)}`}}}}});
+
+    const bc=byCat(curM());
+    const pal=['#6366f1','#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
+    const items=Object.entries(bc).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const cc=document.getElementById('catChart');
+    if(cc&&items.length)this.charts.cat=new Chart(cc,{type:'doughnut',data:{
+      labels:items.map(([id])=>gc(id)?.name||id),
+      datasets:[{data:items.map(([,v])=>v),backgroundColor:items.map((_,i)=>pal[i%pal.length]),borderColor:'#0f1629',borderWidth:2}]
+    },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:10,padding:6,font:{size:10}}},tooltip:{callbacks:{label:c=>`${c.label}: ${fmt(c.parsed)}`}}}}});
+    else if(cc)cc.parentElement.innerHTML=`<div class="empty"><div class="ei">📊</div>บันทึกรายจ่ายแรกได้เลย!</div>`;
+  },
+
+  // ── ADD ─────────────────────────────────────────────────
+  rAdd() {
+    const v=document.getElementById('view-add');
+    const p=this.pend;
+    let h=`<div class="type-tabs">
+      <button class="${p.type==='expense'?'active':''}" onclick="App.setType('expense')">💸 รายจ่าย</button>
+      <button class="${p.type==='income'?'active inc':''}" onclick="App.setType('income')">💵 รายรับ</button>
+    </div>
+    <div class="amt-display"><div class="cur">บาท (THB)</div><div class="num" id="amtD">${p.amount}</div></div>
+    <div class="keypad">
+      ${[1,2,3,4,5,6,7,8,9].map(n=>`<button onclick="App.kp(${n})">${n}</button>`).join('')}
+      <button onclick="App.kp('.')">.</button><button onclick="App.kp(0)">0</button>
+      <button class="del" onclick="App.kp('del')">⌫</button>
+    </div>`;
+    if(p.type==='expense'){
+      h+=`<div style="font-size:11px;color:var(--dim2);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">เลือกหมวดหมู่</div>
+      <div class="cat-grid">`;
+      DATA.categories.forEach(c=>h+=`<button class="cbt ${p.cat===c.id?'sel':''}" onclick="App.selCat('${c.id}')"><span class="ci">${c.icon}</span><span>${c.name}</span></button>`);
+      h+=`</div>
+      <div class="form-row"><label>วิธีชำระ</label>
+        <select onchange="App.pend.method=this.value">
+          <option value="cash">💵 เงินสด</option>
+          <option value="credit">💳 บัตรเครดิต</option>
+          <option value="transfer">📲 โอน/พร้อมเพย์</option>
+        </select></div>`;
+    } else {
+      h+=`<div class="form-row"><label>แหล่งรายรับ</label>
+        <select onchange="App.pend.source=this.value">
+          <option value="salary">💼 เงินเดือน</option>
+          <option value="bonus">🎁 โบนัส</option>
+          <option value="side">💡 รายได้เสริม</option>
+          <option value="other">📦 อื่นๆ</option>
+        </select></div>`;
+    }
+    h+=`<div class="form-row"><label>วันที่</label><input type="date" value="${p.date}" onchange="App.pend.date=this.value"></div>
+    <div class="form-row"><label>บันทึก (ไม่บังคับ)</label><textarea rows="2" oninput="App.pend.note=this.value">${p.note}</textarea></div>
+    <button class="btn ${p.type==='income'?'btn-grn':''}" onclick="App.saveTxn()">✅ บันทึกรายการ</button>`;
+    v.innerHTML=h;
+  },
+  setType(t){this.pend.type=t;this.pend.cat=null;this.rAdd();},
+  selCat(id){this.pend.cat=id;this.rAdd();},
+  kp(k){
+    let s=String(this.pend.amount);
+    if(s==='0')s='';
+    if(k==='del')s=s.slice(0,-1)||'0';
+    else if(k==='.'){if(!s.includes('.'))s+=s?'.':'0.';}
+    else s+=k;
+    if(s==='')s='0';
+    this.pend.amount=s;
+    const el=document.getElementById('amtD');
+    if(el)el.textContent=s;
+  },
+  async saveTxn(){
+    const p=this.pend;
+    const amt=parseFloat(p.amount);
+    if(!amt||amt<=0){this.toast('กรุณาใส่จำนวนเงิน','err');return;}
+    if(p.type==='expense'&&!p.cat){this.toast('กรุณาเลือกหมวดหมู่','err');return;}
+    const txn={id:'t'+Date.now(),date:p.date,type:p.type,amount:amt,cat:p.type==='expense'?p.cat:null,source:p.type==='income'?p.source:null,method:p.type==='expense'?p.method:null,note:p.note||''};
+    DATA.transactions.unshift(txn);
+    this.pend={type:'expense',amount:'0',cat:null,date:td(),note:'',method:'cash',source:'salary'};
+    this.toast('บันทึกแล้ว ✓');
+    schedulePush();
+    this.go('dashboard');
+  },
+
+  // ── TXNS ────────────────────────────────────────────────
+  rTxns(){
+    const v=document.getElementById('view-txns');
+    let txns=[...DATA.transactions];
+    if(this.txnFilter!=='all')txns=txns.filter(x=>x.type===this.txnFilter);
+    txns.sort((a,b)=>b.date.localeCompare(a.date));
+    let h=`<div class="filters">
+      <button class="chip ${this.txnFilter==='all'?'active':''}" onclick="App.txnFilter='all';App.rTxns()">ทั้งหมด</button>
+      <button class="chip ${this.txnFilter==='expense'?'active':''}" onclick="App.txnFilter='expense';App.rTxns()">💸 รายจ่าย</button>
+      <button class="chip ${this.txnFilter==='income'?'active':''}" onclick="App.txnFilter='income';App.rTxns()">💵 รายรับ</button>
+    </div>`;
+    if(!txns.length)h+=`<div class="empty"><div class="ei">📭</div>ยังไม่มีรายการ<br>กด ＋ เพื่อบันทึก</div>`;
+    else{
+      let lastD='';
+      txns.forEach(x=>{
+        if(x.date!==lastD){h+=`<div class="day-hdr">${this.dlabel(x.date)}</div>`;lastD=x.date;}
+        const cat=x.cat?gc(x.cat):null;
+        const icon=cat?cat.icon:(x.type==='income'?'💵':'🔖');
+        const name=cat?cat.name:(x.type==='income'?'รายรับ':'อื่นๆ');
+        h+=`<div class="txn-item" onclick="App.delTxn('${x.id}')">
+          <div class="t-ico">${icon}</div>
+          <div class="t-inf"><div class="t-nm">${name}</div><div class="t-mt">${x.note||'&nbsp;'}</div></div>
+          <div class="t-amt ${x.type==='expense'?'exp':'inc'}">${x.type==='expense'?'-':'+'}${fmt(x.amount)}</div>
+        </div>`;
+      });
+    }
+    v.innerHTML=h;
+  },
+  dlabel(d){
+    const t2=td();
+    const y=new Date();y.setDate(y.getDate()-1);
+    if(d===t2)return'📅 วันนี้';
+    if(d===y.toISOString().slice(0,10))return'📅 เมื่อวาน';
+    return new Date(d).toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'});
+  },
+  async delTxn(id){
+    if(!confirm('ลบรายการนี้?'))return;
+    DATA.transactions=DATA.transactions.filter(x=>x.id!==id);
+    await SB.delete('mm_transactions',id,SESSION?.access_token);
+    schedulePush();
+    this.rTxns();
+  },
+
+  // ── DEBT ────────────────────────────────────────────────
+  rDebt(){
+    const v=document.getElementById('view-debt');
+    const {rem,monthly}=debtInfo();
+    const ratio=((monthly/(DATA.settings.income||1))*100).toFixed(0);
+    let h=`<div class="kgrid">
+      <div class="kpi"><div class="lbl">หนี้คงเหลือทั้งหมด</div><div class="val c-amb">${fmt(rem)}</div></div>
+      <div class="kpi"><div class="lbl">ผ่อน/เดือน (${ratio}%)</div><div class="val ${+ratio>DATA.settings.debtThreshold?'c-red':''}">${fmt(monthly)}</div></div>
+    </div>
+    <button class="btn mb2" onclick="App.openInstModal()">＋ เพิ่มรายการผ่อน</button>`;
+    if(!DATA.installments.length)h+=`<div class="empty"><div class="ei">💳</div>ยังไม่มีรายการผ่อน</div>`;
+    else DATA.installments.forEach(i=>{
+      const ml=Math.max(0,i.total-i.paid);
+      const remAmt=ml*i.monthly;
+      const pct=i.total>0?Math.min(100,(i.paid/i.total)*100):0;
+      const done=ml===0;
+      const payoff=ml>0?(()=>{const d=new Date();d.setMonth(d.getMonth()+ml);return d.toLocaleDateString('th-TH',{month:'long',year:'numeric'});})():'';
+      h+=`<div class="dc">
+        <div class="dc-ttl">${i.name} ${done?'<span style="color:var(--grn);font-size:11px">🎉 จ่ายครบ!</span>':''}</div>
+        <div class="dc-row"><span>ผ่อน/เดือน</span><strong>${fmt(i.monthly)}</strong></div>
+        <div class="dc-row"><span>คงเหลือ</span><strong>${fmt(remAmt)}</strong></div>
+        <div class="dc-row"><span>งวด</span><strong>${i.paid}/${i.total} (เหลือ ${ml})</strong></div>
+        ${payoff?`<div class="dc-row"><span>จะหมดเมื่อ</span><strong>${payoff}</strong></div>`:''}
+        <div class="prog" style="margin:8px 0 4px"><div class="pf" style="width:${pct}%;background:${done?'var(--grn)':'linear-gradient(90deg,var(--pri),var(--sky))'}"></div></div>
+        <div style="font-size:10px;color:var(--dim)">ความคืบหน้า ${pct.toFixed(0)}%</div>
+        <div class="btn-row mt2">
+          ${!done?`<button class="btn btn-grn btn-sm" onclick="App.payInst('${i.id}')">✅ จ่ายงวด</button>`:''}
+          <button class="btn btn-gray btn-sm" onclick="App.openInstModal('${i.id}')">✏️ แก้ไข</button>
+          <button class="btn btn-red btn-sm" onclick="App.delInst('${i.id}')">🗑️</button>
+        </div>
+      </div>`;
+    });
+    v.innerHTML=h;
+  },
+  async payInst(id){
+    const i=gi(id);if(!i||i.paid>=i.total)return;
+    i.paid++;
+    DATA.transactions.unshift({id:'t'+Date.now(),date:td(),type:'expense',amount:i.monthly,cat:'c_other',source:null,method:'transfer',note:'จ่ายงวด: '+i.name});
+    this.toast('จ่ายงวดแล้ว ✓');
+    schedulePush();
+    this.rDebt();
+  },
+  async delInst(id){
+    if(!confirm('ลบรายการนี้?'))return;
+    DATA.installments=DATA.installments.filter(i=>i.id!==id);
+    await SB.delete('mm_installments',id,SESSION?.access_token);
+    schedulePush();
+    this.rDebt();
+  },
+  openInstModal(id){
+    const i=id?gi(id):null;
+    const m=i||{name:'',monthly:0,total:12,paid:0,start:td()};
+    this.openModal(`<h3>${i?'แก้ไข':'เพิ่ม'}รายการผ่อน</h3>
+      <div class="form-row"><label>ชื่อรายการ</label><input id="iN" value="${m.name}" placeholder="เช่น ผ่อนบ้าน"></div>
+      <div class="form-row"><label>ผ่อน/เดือน (฿)</label><input id="iM" type="number" value="${m.monthly||''}"></div>
+      <div class="form-row"><label>จำนวนงวดทั้งหมด</label><input id="iT" type="number" value="${m.total}"></div>
+      <div class="form-row"><label>งวดที่จ่ายแล้ว</label><input id="iP" type="number" value="${m.paid}"></div>
+      <div class="form-row"><label>วันที่เริ่ม</label><input id="iS" type="date" value="${m.start}"></div>
+      <button class="btn" onclick="App.saveInst('${id||''}')">💾 บันทึก</button>`);
+  },
+  async saveInst(id){
+    const name=document.getElementById('iN').value.trim();
+    const monthly=parseFloat(document.getElementById('iM').value)||0;
+    const total=parseInt(document.getElementById('iT').value)||1;
+    const paid=parseInt(document.getElementById('iP').value)||0;
+    const start=document.getElementById('iS').value||td();
+    if(!name){this.toast('กรุณาใส่ชื่อ','err');return;}
+    if(id){Object.assign(gi(id),{name,monthly,total,paid,start});}
+    else{DATA.installments.push({id:'i'+Date.now(),name,monthly,total,paid,start});}
+    schedulePush();
+    this.closeModal();this.rDebt();
+  },
+
+  // ── SETTINGS ────────────────────────────────────────────
+  rSettings(){
+    const v=document.getElementById('view-settings');
+    const s=DATA.settings;
+    v.innerHTML=`<div class="card-t mb2">👤 บัญชีและการตั้งค่า</div>
+    <div class="card mb2">
+      <div class="form-row"><label>รายได้ต่อเดือน (฿)</label><input id="sInc" type="number" value="${s.income}"></div>
+      <div class="form-row"><label>เงินเก็บปัจจุบัน (฿)</label><input id="sSav" type="number" value="${s.savings}"></div>
+      <div class="form-row"><label>เงินสำรองฉุกเฉิน (เดือน)</label><input id="sSafe" type="number" value="${s.safetyMonths}"></div>
+      <div class="form-row"><label>เกณฑ์หนี้ต่อรายได้ (%)</label><input id="sRatio" type="number" value="${s.debtThreshold}"></div>
+    </div>
+    <button class="btn mb2" onclick="App.saveSettings()">💾 บันทึกและซิงค์</button>
+
+    <div class="card-t mt2 mb2">🏷️ หมวดหมู่ (${DATA.categories.length} หมวด)</div>
+    <button class="btn btn-gray mb2" onclick="App.openCatModal()">＋ เพิ่มหมวดหมู่</button>
+    <div class="card">${DATA.categories.map(c=>`
+      <div class="flex-sb" style="padding:9px 0;border-bottom:1px solid var(--bdr)">
+        <div>${c.icon} <strong>${c.name}</strong> <span class="tag ${c.type}">${c.type==='fix'?'คงที่':'ผันแปร'}</span>
+          <div style="font-size:10px;color:var(--dim);margin-top:2px">งบ ${fmt(c.budget)}/เดือน</div></div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-gray btn-sm" style="width:auto;padding:5px 9px" onclick="App.openCatModal('${c.id}')">✏️</button>
+          <button class="btn btn-red btn-sm" style="width:auto;padding:5px 9px" onclick="App.delCat('${c.id}')">×</button>
+        </div>
+      </div>`).join('')}</div>
+
+    <div class="card-t mt2 mb2">🔐 บัญชีผู้ใช้</div>
+    <div class="card mb2" style="font-size:13px">
+      <div style="color:var(--dim);margin-bottom:4px">เข้าสู่ระบบด้วย</div>
+      <strong>${SESSION?.user?.email||'-'}</strong>
+      <div style="font-size:11px;color:var(--grn);margin-top:4px">☁️ ข้อมูลซิงค์กับ Supabase Cloud</div>
+    </div>
+    <button class="btn btn-red" onclick="App.logout()">🚪 ออกจากระบบ</button>
+    <div style="text-align:center;color:var(--dim);font-size:10px;padding:18px 0 4px">Mone-money v4.0 · Supabase Sync · AI-Powered</div>`;
+  },
+  async saveSettings(){
+    DATA.settings.income=parseFloat(document.getElementById('sInc').value)||0;
+    DATA.settings.savings=parseFloat(document.getElementById('sSav').value)||0;
+    DATA.settings.safetyMonths=parseInt(document.getElementById('sSafe').value)||3;
+    DATA.settings.debtThreshold=parseFloat(document.getElementById('sRatio').value)||40;
+    DATA.settings.savingsUpdated=td();
+    await pushAll();
+    this.toast('บันทึกและซิงค์แล้ว ✓');
+    this.rSettings();
+  },
+  openCatModal(id){
+    const c=id?gc(id):null;
+    const m=c||{name:'',icon:'🔖',type:'var',budget:0};
+    this.openModal(`<h3>${c?'แก้ไข':'เพิ่ม'}หมวดหมู่</h3>
+      <div class="form-row"><label>Icon (emoji)</label><input id="cI" value="${m.icon}" maxlength="4"></div>
+      <div class="form-row"><label>ชื่อ</label><input id="cN" value="${m.name}"></div>
+      <div class="form-row"><label>ประเภท</label><select id="cT"><option value="var" ${m.type==='var'?'selected':''}>ผันแปร</option><option value="fix" ${m.type==='fix'?'selected':''}>คงที่</option></select></div>
+      <div class="form-row"><label>งบ/เดือน (฿)</label><input id="cB" type="number" value="${m.budget||0}"></div>
+      <button class="btn" onclick="App.saveCat('${id||''}')">💾 บันทึก</button>`);
+  },
+  async saveCat(id){
+    const name=document.getElementById('cN').value.trim();
+    const icon=document.getElementById('cI').value.trim()||'🔖';
+    const type=document.getElementById('cT').value;
+    const budget=parseFloat(document.getElementById('cB').value)||0;
+    if(!name){this.toast('กรุณาใส่ชื่อ','err');return;}
+    if(id){Object.assign(gc(id),{name,icon,type,budget});}
+    else{DATA.categories.push({id:'c'+Date.now(),name,icon,type,budget});}
+    await pushAll();
+    this.closeModal();this.rSettings();
+  },
+  async delCat(id){
+    if(!confirm('ลบหมวดนี้?'))return;
+    DATA.categories=DATA.categories.filter(c=>c.id!==id);
+    await pushAll();this.rSettings();
+  },
+  async logout(){
+    if(!confirm('ออกจากระบบ?'))return;
+    if(SESSION)await SB.signOut(SESSION.access_token);
+    localStorage.removeItem(LSK);
+    location.reload();
+  },
+
+  // ── AI CHAT ─────────────────────────────────────────────
+  openChat(){
+    const msgs=DATA.aiLog;
+    let ch=msgs.map(m=>`<div class="msg ${m.role==='user'?'user':'ai'}"><div class="bbl">${m.content.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div></div>`).join('');
+    if(!ch)ch=`<div class="msg ai"><div class="bbl">สวัสดีครับ! 👋 ถามเรื่องการเงินได้เลย</div></div>`;
+    this.openModal(`<h3>🤖 คุยกับ Mona AI</h3>
+      <div class="chat-box" id="chatBox">${ch}</div>
+      <div class="ai-chips" style="margin-bottom:10px">
+        <button class="ac" onclick="App.chatSend('วิเคราะห์การเงินเดือนนี้')">📊 เดือนนี้</button>
+        <button class="ac" onclick="App.chatSend('แนะนำลดรายจ่าย')">✂️ ลดรายจ่าย</button>
+        <button class="ac" onclick="App.chatSend('สภาพคล่อง 14 วันข้างหน้า')">🔮 14 วัน</button>
+        <button class="ac" onclick="App.chatSend('แผนออมเงินที่เหมาะกับฉัน')">🏦 ออมเงิน</button>
+      </div>
+      <div class="chat-input-row">
+        <input id="chatIn" placeholder="ถามเรื่องการเงิน..." onkeydown="if(event.key==='Enter')App.chatSend()">
+        <button onclick="App.chatSend()">➤</button>
+      </div>`);
+    const box=document.getElementById('chatBox');
+    if(box)box.scrollTop=box.scrollHeight;
+  },
+  async chatSend(preset){
+    const inp=document.getElementById('chatIn');
+    const q=preset||(inp&&inp.value.trim());
+    if(!q)return;
+    if(inp)inp.value='';
+    const box=document.getElementById('chatBox');
+    if(box){
+      box.innerHTML+=`<div class="msg user"><div class="bbl">${q}</div></div>`;
+      box.innerHTML+=`<div class="msg ai" id="typing"><div class="bbl"><span class="pulse">🤖 กำลังคิด...</span></div></div>`;
+      box.scrollTop=box.scrollHeight;
+    }
+    DATA.aiLog.push({role:'user',content:q});
+    const history=DATA.aiLog.slice(-10).map(m=>({role:m.role==='user'?'user':'assistant',content:m.content}));
+    const ans=await callAI(q,history);
+    DATA.aiLog.push({role:'assistant',content:ans});
+    if(DATA.aiLog.length>40)DATA.aiLog=DATA.aiLog.slice(-40);
+    schedulePush();
+    const typing=document.getElementById('typing');
+    if(typing)typing.querySelector('.bbl').innerHTML=ans.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    if(box)box.scrollTop=box.scrollHeight;
+  },
+
+  showUserMenu(){
+    this.openModal(`<h3>👤 บัญชีของคุณ</h3>
+      <div style="background:var(--bg3);border-radius:12px;padding:14px;margin-bottom:14px">
+        <div style="font-weight:700;font-size:15px">${PROFILE?.name||'ผู้ใช้'}</div>
+        <div style="font-size:12px;color:var(--dim);margin-top:3px">${SESSION?.user?.email||''}</div>
+        <div style="font-size:11px;color:var(--grn);margin-top:6px">☁️ ซิงค์ออนไลน์ · Supabase</div>
+      </div>
+      <button class="btn btn-gray mb2" onclick="pushAll().then(()=>App.toast('ซิงค์แล้ว ✓'));App.closeModal()">🔄 ซิงค์ข้อมูลเดี๋ยวนี้</button>
+      <button class="btn btn-red" onclick="App.logout()">🚪 ออกจากระบบ</button>`);
+  },
+
+  openModal(html){document.getElementById('mc').innerHTML=html;document.getElementById('modal').classList.add('open');},
+  closeModal(){document.getElementById('modal').classList.remove('open');},
+  toast(msg,type){
+    const el=document.getElementById('toast');
+    el.textContent=msg;el.className='toast'+(type==='err'?' err':'')+' show';
+    setTimeout(()=>el.classList.remove('show'),2200);
+  }
+};
+
+// ══════════════════════════════════════════════════════════
+// BOOT — check saved session
+// ══════════════════════════════════════════════════════════
+async function boot() {
+  try {
+    const saved = localStorage.getItem(LSK);
+    if (saved) {
+      const { token } = JSON.parse(saved);
+      // Verify token still valid
+      const userRes = await SB.getUser(token);
+      if (userRes.id && !userRes.error) {
+        SESSION = { access_token: token, user: userRes };
+        PROFILE = { name: userRes.user_metadata?.name || userRes.email?.split('@')[0] || '' };
+        await pullAll();
+        document.getElementById('loadingScreen').style.display='none';
+        document.getElementById('appWrap').style.display='block';
+        const uBtn = document.getElementById('userBtn');
+        if(uBtn) uBtn.textContent=(PROFILE?.name||SESSION?.user?.email?.split('@')[0]||'👤').slice(0,6);
+        if(!DATA.categories.length) Onboard.start();
+        else App.showApp();
+        return;
+      }
+    }
+  } catch(e) {}
+  // No valid session — show auth
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('authScreen').style.display='flex';
+}
+
+document.addEventListener('DOMContentLoaded', boot);
+document.getElementById('modal').addEventListener('click', e=>{ if(e.target.id==='modal') App.closeModal(); });
+</script>
+</body>
+</html>
