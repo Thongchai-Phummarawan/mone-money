@@ -797,16 +797,23 @@ function buildSys() {
 ตอบกระชับ เจาะจง ใช้ตัวเลขจริง แนะนำสิ่งที่ทำได้เลยทันที`;
 }
 
+const GEMINI_KEY = 'AIzaSyBkhknch-NbiedmzxTMK-fVmBbl3dNG914';
+
 async function callAI(msg, history=[]) {
-  const msgs = [...history.slice(-8), {role:'user',content:msg}];
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages',{
+    const contents = [];
+    history.slice(-8).forEach(m => {
+      contents.push({ role: m.role==='user'?'user':'model', parts:[{text:m.content}] });
+    });
+    contents.push({ role:'user', parts:[{text: buildSys()+'\n\nคำถาม: '+msg}] });
+
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:buildSys(),messages:msgs})
+      body:JSON.stringify({ contents })
     });
     const d = await r.json();
-    return d.content?.[0]?.text||'ขอโทษ ตอบไม่ได้ตอนนี้';
-  } catch { return 'ไม่สามารถเชื่อมต่อ AI'; }
+    return d.candidates?.[0]?.content?.parts?.[0]?.text || 'ขอโทษ ตอบไม่ได้ตอนนี้';
+  } catch(e) { return 'ไม่สามารถเชื่อมต่อ AI ได้'; }
 }
 
 // ══════════════════════════════════════════════════════════
