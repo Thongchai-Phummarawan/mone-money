@@ -282,6 +282,8 @@ main{padding:14px}
 // SUPABASE CONFIG
 // ══════════════════════════════════════════════════════════
 const SB_URL = 'https://oqcvisqguygqtodndsyp.supabase.co';
+const ADMIN_EMAIL = 'devilkarnkuf@gmail.com'; // เปลี่ยน Email แจ้งเตือนได้ที่นี่
+
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xY3Zpc3FndXlncXRvZG5kc3lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMjc0MDksImV4cCI6MjA5MzkwMzQwOX0.B-S5C_fNniKyp97aDYkRwGeR4DPEDNSaJHjUWycAxU8';
 
 // ══════════════════════════════════════════════════════════
@@ -566,15 +568,43 @@ const Auth = {
     if (!email||!pass) { this.showErr('กรุณากรอก Email และ Password'); return; }
     if (pass.length<6) { this.showErr('Password ต้องมีอย่างน้อย 6 ตัวอักษร'); return; }
     const btn = document.getElementById('regBtn');
-    btn.disabled=true; btn.textContent='กำลังสมัคร...';
-    const res = await SB.signUp(email, pass, name);
+    btn.disabled=true; btn.textContent='กำลังส่งคำขอ...';
+
+    // Save pending request to Supabase
+    try {
+      await SB.upsert('mm_pending_users', {
+        id: email.replace(/[^a-z0-9]/gi,'_'),
+        name: name||'', email, pass_hint: pass.slice(0,2)+'****',
+        requested_at: new Date().toISOString(), status: 'pending'
+      }, null);
+    } catch(e) {}
+
+    // Notify admin via email using EmailJS (free)
+    try {
+      await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          service_id: 'service_retkiby',
+          template_id: 'template_iuu8ngn',
+          user_id: 'HphuFn5S5j5g-AmrV',
+          template_params: {
+            to_email: ADMIN_EMAIL,
+            from_name: name||email,
+            from_email: email,
+            message: `มีผู้ขอสมัครใช้งาน Mone-money\nชื่อ: ${name||'-'}\nEmail: ${email}\nวันที่: ${new Date().toLocaleString('th-TH')}`
+          }
+        })
+      });
+    } catch(e) {}
+
     btn.disabled=false; btn.textContent='✨ สมัครสมาชิกฟรี';
-    if (res.error) { this.showErr(res.error.message||'สมัครไม่สำเร็จ'); return; }
-    // Auto sign in
-    const loginRes = await SB.signIn(email, pass);
-    if (!loginRes.access_token) { this.showErr('สมัครสำเร็จ! กรุณา Login ด้านซ้าย'); this.showTab('login'); return; }
-    PROFILE = { name: name || email.split('@')[0] };
-    await this.onLogin(loginRes);
+    this.showErr('');
+    document.getElementById('authErr').style.background='rgba(16,185,129,.12)';
+    document.getElementById('authErr').style.borderColor='rgba(16,185,129,.3)';
+    document.getElementById('authErr').style.color='#6ee7b7';
+    document.getElementById('authErr').textContent='✅ ส่งคำขอสำเร็จแล้ว! รอผู้ดูแลระบบอนุมัติ แล้วจะได้รับแจ้งกลับทาง Email ครับ';
+    document.getElementById('authErr').classList.add('show');
   },
 
   async onLogin(res) {
@@ -797,7 +827,7 @@ function buildSys() {
 ตอบกระชับ เจาะจง ใช้ตัวเลขจริง แนะนำสิ่งที่ทำได้เลยทันที`;
 }
 
-const GEMINI_KEY = 'AIzaSyBMz9fHhfeLiSnGIsQEcZ7fqswuZYgK58I';
+const GEMINI_KEY = 'AIzaSyCYmNVpyZHhKieHX5SPxg9L8gS3KQRr3I0';
 
 async function callAI(msg, history=[]) {
   try {
@@ -910,15 +940,19 @@ const App = {
     h+=`<div class="ai-panel">
       <div class="ai-hdr">
         <div class="ai-avatar">🤖</div>
-        <div><div class="ai-name">Mona — AI Financial Advisor</div><div class="ai-sub2" id="aiSub">กดเพื่อวิเคราะห์</div></div>
+        <div><div class="ai-name">Mona — AI Financial Advisor</div><div class="ai-sub2" id="aiSub">กดเพื่อวิเคราะห์หรือพิมพ์ถามได้เลย</div></div>
       </div>
-      <div class="ai-body ${lastAI?'':'dim'}" id="aiBody">${lastAI?lastAI.content.replace(/\n/g,'<br>'):'เลือกหัวข้อด้านล่างเพื่อให้ Mona วิเคราะห์ให้'}</div>
+      <div class="ai-body ${lastAI?'':'dim'}" id="aiBody">${lastAI?lastAI.content.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>'):'เลือกหัวข้อด้านล่างหรือพิมพ์ถามได้เลยครับ'}</div>
       <div class="ai-chips">
         <button class="ac" onclick="App.qAI('สรุปสถานการณ์การเงินเดือนนี้ พร้อมคะแนนสุขภาพการเงิน')">📊 สรุปเดือนนี้</button>
         <button class="ac" onclick="App.qAI('วิเคราะห์ความเสี่ยงสภาพคล่อง 14 วันข้างหน้า')">🔮 ความเสี่ยง 14 วัน</button>
         <button class="ac" onclick="App.qAI('แนะนำ 3 วิธีลดรายจ่ายที่ทำได้ทันที')">✂️ แนะนำประหยัด</button>
         <button class="ac" onclick="App.qAI('วิเคราะห์ภาระหนี้และแนะนำวิธีจัดการ')">💳 วิเคราะห์หนี้</button>
         <button class="ac" onclick="App.qAI('ควรออมเงินเดือนละเท่าไหร่และไว้ที่ไหน')">🏦 แผนออมเงิน</button>
+      </div>
+      <div class="chat-input-row" style="margin-top:10px">
+        <input id="dashChatIn" placeholder="พิมพ์ถาม Mona ได้เลย..." onkeydown="if(event.key==='Enter')App.dashChat()" style="font-size:13px">
+        <button onclick="App.dashChat()" style="font-size:16px">➤</button>
       </div>
     </div>`;
 
@@ -949,6 +983,14 @@ const App = {
 
     v.innerHTML=h;
     this.rCharts();
+  },
+
+  async dashChat() {
+    const inp = document.getElementById('dashChatIn');
+    const q = inp?.value.trim();
+    if (!q) return;
+    inp.value = '';
+    await this.qAI(q);
   },
 
   async qAI(q) {
