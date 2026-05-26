@@ -827,7 +827,7 @@ function buildSys() {
 ตอบกระชับ เจาะจง ใช้ตัวเลขจริง แนะนำสิ่งที่ทำได้เลยทันที`;
 }
 
-const GEMINI_KEY = 'REPLACE_WITH_GEMINI_KEY';
+const getGeminiKey = () => localStorage.getItem('my_gemini_key') || '';
 
 async function callAI(msg, history=[]) {
   try {
@@ -847,7 +847,7 @@ async function callAI(msg, history=[]) {
     });
 
     const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${getGeminiKey()}`
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1232,6 +1232,9 @@ const App = {
       <div class="form-row"><label>เงินเก็บปัจจุบัน (฿)</label><input id="sSav" type="number" value="${s.savings}"></div>
       <div class="form-row"><label>เงินสำรองฉุกเฉิน (เดือน)</label><input id="sSafe" type="number" value="${s.safetyMonths}"></div>
       <div class="form-row"><label>เกณฑ์หนี้ต่อรายได้ (%)</label><input id="sRatio" type="number" value="${s.debtThreshold}"></div>
+      <div class="form-row">
+  <label>Gemini API Key 🤖 (คีย์ส่วนตัวเซฟลงเครื่องนี้)</label>
+  <input id="sGemini" type="password" value="${localStorage.getItem('my_gemini_key')||''}" placeholder="AIzaSy...">
     </div>
     <button class="btn mb2" onclick="App.saveSettings()">💾 บันทึกและซิงค์</button>
 
