@@ -279,7 +279,7 @@ main{padding:14px}
 // SUPABASE CONFIG
 // ══════════════════════════════════════════════════════════
 const SB_URL = 'https://oqcvisqguygqtodndsyp.supabase.co';
-const ADMIN_EMAIL = 'devilkarnkuf@gmail.com'; // เปลี่ยน Email แจ้งเตือนได้ที่นี่
+const ADMIN_EMAIL = 'devilkarnkuf@gmail.com'; 
 
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xY3Zpc3FndXlncXRvZG5kc3lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMjc0MDksImV4cCI6MjA5MzkwMzQwOX0.B-S5C_fNniKyp97aDYkRwGeR4DPEDNSaJHjUWycAxU8';
 
@@ -812,7 +812,6 @@ function buildSys() {
 ตอบกระชับ เจาะจง ใช้ตัวเลขจริง แนะนำสิ่งที่ทำได้เลยทันที`;
 }
 
-// 🛠️ จุดที่ 1: ดึงคีย์จาก LocalStorage ในเครื่องผู้ใช้ (บอตครอว์เลอร์ของกูเกิลสแกนไม่เจอ)
 const getGeminiKey = () => localStorage.getItem('my_gemini_key') || '';
 
 async function callAI(msg, history=[]) {
@@ -835,7 +834,6 @@ async function callAI(msg, history=[]) {
       parts: [{text: systemMsg + '\n\n---\nคำถามของผู้ใช้: ' + msg}]
     });
 
-    // 🛠️ จุดที่ 2: เปลี่ยนมาใช้โมเดลเวอร์ชันเสถียร (และเรียกคีย์ผ่านฟังก์ชัน)
     const r = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
       {
@@ -993,7 +991,7 @@ const App = {
     DATA.aiLog.push({role:'user',content:q},{role:'assistant',content:ans});
     if(DATA.aiLog.length>30)DATA.aiLog=DATA.aiLog.slice(-30);
     schedulePush();
-    body.innerHTML=ans.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    body.innerHTML=ans.replace(/\n/g,'<br>');
     body.className='ai-body';
     if(sub)sub.textContent='วิเคราะห์เสร็จแล้ว ✓';
   },
@@ -1211,7 +1209,6 @@ const App = {
   rSettings(){
     const v=document.getElementById('view-settings');
     const s=DATA.settings;
-    // 🛠️ จุดที่ 3: แทรกช่องกรอก Gemini API Key ส่วนตัวไว้ในหน้า Settings
     v.innerHTML=`<div class="card-t mb2">👤 บัญชีและการตั้งค่า</div>
     <div class="card mb2">
       <div class="form-row"><label>รายได้ต่อเดือน (฿)</label><input id="sInc" type="number" value="${s.income}"></div>
@@ -1244,7 +1241,6 @@ const App = {
     <div style="text-align:center;color:var(--dim);font-size:10px;padding:18px 0 4px">Mone-money v4.0 · Local Key · AI-Powered</div>`;
   },
   async saveSettings(){
-    // 🛠️ จุดที่ 4: สั่งบันทึก Key ลงเครื่องผู้ใช้เมื่อกดปุ่มเซฟ
     localStorage.setItem('my_gemini_key', document.getElementById('sGemini').value.trim());
     
     DATA.settings.income=parseFloat(document.getElementById('sInc').value)||0;
