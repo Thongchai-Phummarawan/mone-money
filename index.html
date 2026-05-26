@@ -1260,6 +1260,7 @@ const App = {
     <div style="text-align:center;color:var(--dim);font-size:10px;padding:18px 0 4px">Mone-money v4.0 · Supabase Sync · AI-Powered</div>`;
   },
   async saveSettings(){
+    localStorage.setItem('my_gemini_key', document.getElementById('sGemini').value.trim());
     DATA.settings.income=parseFloat(document.getElementById('sInc').value)||0;
     DATA.settings.savings=parseFloat(document.getElementById('sSav').value)||0;
     DATA.settings.safetyMonths=parseInt(document.getElementById('sSafe').value)||3;
