@@ -703,3 +703,242 @@ document.addEventListener('DOMContentLoaded', boot);
 </script>
 </body>
 </html>
+const Auth = {
+  showTab(tab) {
+    document.getElementById('loginForm').style.display = tab==='login'?'block':'none';
+    document.getElementById('registerForm').style.display = tab==='register'?'block':'none';
+    document.getElementById('tabLogin').className = tab==='login'?'active':'';
+    document.getElementById('tabRegister').className = tab==='register'?'active':'';
+  },
+  showErr(msg) { const el = document.getElementById('authErr'); el.textContent = msg; el.classList.add('show'); },
+  clearErr() { document.getElementById('authErr').classList.remove('show'); },
+  async login() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    if (!email||!pass) { this.showErr('กรุณากรอก Email และ Password'); return; }
+    const btn = document.getElementById('loginBtn'); btn.disabled=true;
+    const res = await SB.signIn(email, pass); btn.disabled=false;
+    if (res.error || !res.access_token) { this.showErr(res.error?.message||'Email หรือ Password ไม่ถูกต้อง'); return; }
+    await this.onLogin(res);
+  },
+  async register() {
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const pass = document.getElementById('regPass').value;
+    if (!email||!pass) { this.showErr('กรุณากรอก Email และ Password'); return; }
+    const btn = document.getElementById('regBtn'); btn.disabled=true;
+    try { await SB.upsert('mm_pending_users', { id: email.replace(/[^a-z0-9]/gi,'_'), name: name||'', email, pass_hint: pass.slice(0,2)+'****', requested_at: new Date().toISOString(), status: 'pending' }, null); } catch(e) {}
+    btn.disabled=false; this.showErr('');
+    const errEl = document.getElementById('authErr');
+    errEl.style.background='rgba(16,185,129,.12)'; errEl.style.borderColor='rgba(16,185,129,.3)'; errEl.style.color='#6ee7b7';
+    errEl.textContent='✅ ส่งคำขอสำเร็จแล้ว! รอผู้ดูแลระบบอนุมัติ แล้วจะได้รับแจ้งกลับทาง Email ครับ'; errEl.classList.add('show');
+  },
+  async onLogin(res) {
+    SESSION = { access_token: res.access_token, user: res.user };
+    localStorage.setItem(LSK, JSON.stringify({ token: res.access_token, uid: res.user.id }));
+    await pullAll(); this.startApp();
+  },
+  startApp() {
+    document.getElementById('authScreen').style.display='none';
+    document.getElementById('appWrap').style.display='block';
+    const uBtn = document.getElementById('userBtn');
+    if (uBtn) uBtn.textContent = (PROFILE?.name||SESSION?.user?.email?.split('@')[0]||'👤').slice(0,6);
+    if (!DATA.categories.length) Onboard.start(); else App.showApp();
+  }
+};
+
+const DEFAULT_CATS = [
+  {id:'c_house',name:'ที่อยู่อาศัย',icon:'🏠',type:'fix',budget:0}, {id:'c_food',name:'อาหาร',icon:'🍱',type:'var',budget:0},
+  {id:'c_fuel',name:'น้ำมัน',icon:'⛽',type:'var',budget:0}, {id:'c_phone',name:'โทรศัพท์/เน็ต',icon:'📱',type:'var',budget:0},
+  {id:'c_elec',name:'ค่าไฟ/น้ำ',icon:'💡',type:'var',budget:0}, {id:'c_car',name:'ผ่อนรถ',icon:'🚗',type:'fix',budget:0},
+  {id:'c_ins',name:'ประกัน',icon:'🛡️',type:'fix',budget:0}, {id:'c_coffee',name:'กาแฟ/ชา',icon:'☕',type:'var',budget:0},
+  {id:'c_social',name:'ค่าสังคม',icon:'🍻',type:'var',budget:0}, {id:'c_other',name:'อื่นๆ',icon:'🔖',type:'var',budget:0}
+];
+
+const Onboard = {
+  step: 0, tmp: { savings:0, income:0, selectedCats:[], catBudgets:{}, installments:[] },
+  start() {
+    document.getElementById('onboardArea').style.display='block';
+    document.getElementById('appViews').style.display='none';
+    document.getElementById('bnav').style.display='none'; this.render();
+  },
+  render() { const el = document.getElementById('onboardArea'); const steps = [this.s0,this.s1,this.s2,this.s3]; el.innerHTML = steps[this.step]?.call(this)||''; },
+  dots() {
+    let h=''; for(let i=0;i<4;i++) h+=i<this.step?`<div class="ob-dot done"></div>`:i===this.step?`<div class="ob-dot active"></div>`:`<div class="ob-dot todo"></div>`; return h;
+  },
+  next() { this.step++; if(this.step>=4){this.finish();return;} this.render(); },
+  s0() {
+    return `<div class="ob-wrap"><div class="ob-prog">${this.dots()}</div><div class="ob-icon">👋</div><div class="ob-title">ยินดีต้อนรับ!</div><div class="ob-field"><label>รายได้ต่อเดือน (฿)</label><input type="number" oninput="Onboard.tmp.income=+this.value"></div><div class="ob-field"><label>เงินเก็บที่มีอยู่ตอนนี้ (฿)</label><input type="number" oninput="Onboard.tmp.savings=+this.value"></div><button class="btn" onclick="Onboard.next()">ถัดไป →</button></div>`;
+  },
+  s1() {
+    let catHtml = DEFAULT_CATS.map(c=>{
+      const active = this.tmp.selectedCats.includes(c.id);
+      return `<div class="ob-cat ${active?'active':''}" onclick="Onboard.toggleCat('${c.id}')"><div class="icon">${c.icon}</div><div class="name">${c.name}</div></div>`;
+    }).join('');
+    return `<div class="ob-wrap"><div class="ob-prog">${this.dots()}</div><div class="ob-cat-grid">${catHtml}</div><button class="btn" onclick="Onboard.next()">ถัดไป →</button></div>`;
+  },
+  s2() {
+    return `<div class="ob-wrap"><div class="ob-prog">${this.dots()}</div><div class="ob-title">พร้อมแล้ว!</div><button class="btn" onclick="Onboard.finish()">🚀 เริ่มใช้งาน!</button></div>`;
+  },
+  s3() { this.finish(); },
+  toggleCat(id) {
+    const i = this.tmp.selectedCats.indexOf(id); if(i>=0) this.tmp.selectedCats.splice(i,1); else this.tmp.selectedCats.push(id); this.render();
+  },
+  async finish() {
+    DATA.settings.savings = this.tmp.savings||0; DATA.settings.income = this.tmp.income||0; DATA.settings.savingsUpdated = td();
+    DATA.categories = this.tmp.selectedCats.length ? DEFAULT_CATS.filter(c=>this.tmp.selectedCats.includes(c.id)) : DEFAULT_CATS.map(c=>({...c}));
+    await pushAll(); App.showApp();
+  }
+};
+
+function buildSys() {
+  const { inc,exp,net } = mSum(curM()); const sav = calcSavings(); const debt = debtInfo(); const bc = byCat(curM()); const al = localRisk();
+  const top = Object.entries(bc).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([id,v])=>`${gc(id)?.name||id}: ${fmt(v)}`).join(' | ');
+  return `คุณคือ "Mona" AI ที่ปรึกษาการเงินส่วนตัว แอป Mone-money
+Status: Income:${fmt(inc)}|Expense:${fmt(exp)}|Savings:${fmt(sav)}|Debt:${fmt(debt.rem)}|Top:${top||'ไม่มี'} ตอบสั้นกระชับ ใช้emojiได้`;
+}
+
+const getGeminiKey = () => localStorage.getItem('my_gemini_key') || '';
+
+async function callAI(msg, history=[]) {
+  try {
+    const key = getGeminiKey(); if (!key) return '❌ กรุณาตั้งค่า Gemini API Key ก่อนใช้งานที่เมนู "ตั้งค่า" ⚙️ ด้านล่างครับ';
+    const systemMsg = buildSys(); const contents = [];
+    history.slice(-6).forEach(m => { contents.push({ role: m.role==='user'?'user':'model', parts: [{text: m.content}] }); });
+    contents.push({ role: 'user', parts: [{text: systemMsg + '\n\n---\nคำถาม: ' + msg}] });
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents, generationConfig: { temperature: 0.7, maxOutputTokens: 2000 } })
+    });
+    if (!r.ok) { const err = await r.json(); console.error('Gemini error:', err); return '❌ คีย์ไม่ถูกต้องหรือโดนแบน กรุณาสร้างคีย์ใหม่มาเปลี่ยนในหน้าตั้งค่าครับ'; }
+    const d = await r.json(); return d.candidates?.[0]?.content?.parts?.[0]?.text || 'ขอโทษด้วยครับ ลองใหม่อีกครั้งนะ';
+  } catch(e) { return 'ไม่สามารถเชื่อมต่อ AI ได้ ตรวจสอบเน็ตอีกครั้งครับ'; }
+}
+
+const App = {
+  tab: 'dashboard', charts: {}, pend: {type:'expense',amount:'0',cat:null,date:td(),note:'',method:'cash'}, txnFilter: 'all',
+  showApp() {
+    document.getElementById('onboardArea').style.display='none'; document.getElementById('appViews').style.display='block'; document.getElementById('bnav').style.display='grid';
+    document.querySelectorAll('.nb').forEach(b=>b.addEventListener('click',()=>this.go(b.dataset.tab)));
+    this.go('dashboard');
+    if(!DATA.aiLog.length) DATA.aiLog.push({role:'assistant',content:`สวัสดีครับ! 👋 ผม Mona พร้อมช่วยวิเคราะห์การเงินแล้วครับ`});
+  },
+  go(tab) {
+    this.tab=tab; document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+tab)?.classList.add('active');
+    document.querySelectorAll('.nb').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab)); this.render();
+  },
+  render() {
+    if(this.tab==='dashboard') this.rDash(); else if(this.tab==='add') this.rAdd(); else if(this.tab==='txns') this.rTxns(); else if(this.tab==='debt') this.rDebt(); else if(this.tab==='settings') this.rSettings();
+  },
+  rDash() {
+    const v=document.getElementById('view-dashboard'); const {inc,exp,net}=mSum(curM()); const sav=calcSavings(); const ts=todaySpent(); const debt=debtInfo(); const risks=localRisk();
+    let h=`<div class="kgrid">
+      <div class="kpi hero"><div class="lbl">💰 เงินเก็บสะสม</div><div class="val">${fmt(sav)}</div></div>
+      <div class="kpi"><div class="lbl">จ่ายวันนี้</div><div class="val">${fmt(ts)}</div></div>
+      <div class="kpi"><div class="lbl">ส่วนต่างเดือนนี้</div><div class="val">${fmt(net)}</div></div>
+      <div class="kpi"><div class="lbl">รายรับเดือนนี้</div><div class="val c-grn">${fmt(inc)}</div></div>
+      <div class="kpi"><div class="lbl">รายจ่ายเดือนนี้</div><div class="val c-red">${fmt(exp)}</div></div>
+    </div>`;
+    const lastAI = DATA.aiLog.filter(m=>m.role==='assistant').slice(-1)[0];
+    h+=`<div class="ai-panel">
+      <div class="ai-hdr"><div class="ai-avatar">🤖</div><div class="ai-name">Mona — AI Advisor</div></div>
+      <div class="ai-body" id="aiBody">${lastAI?lastAI.content.replace(/\n/g,'<br>'):'กดวิเคราะห์ด้านล่างได้เลยครับ'}</div>
+      <div class="ai-chips">
+        <button class="ac" onclick="App.qAI('สรุปภาพรวมสถานการณ์การเงินเดือนนี้ให้หน่อย')">📊 สรุปเดือนนี้</button>
+        <button class="ac" onclick="App.qAI('แนะนำแผนประหยัดเงิน 3 ข้อด่วน')">✂️ แนะนำประหยัด</button>
+      </div>
+      <div class="chat-input-row" style="margin-top:10px">
+        <input id="dashChatIn" placeholder="ถามเกี่ยวกับเงินของคุณ..." onkeydown="if(event.key==='Enter')App.dashChat()">
+        <button onclick="App.dashChat()">➤</button>
+      </div>
+    </div>`;
+    v.innerHTML=h;
+  },
+  async dashChat() { const inp = document.getElementById('dashChatIn'); const q = inp?.value.trim(); if (!q) return; inp.value = ''; await this.qAI(q); },
+  async qAI(q) {
+    const body=document.getElementById('aiBody'); if(!body)return; body.innerHTML='<span class="pulse">🤖 Mona กำลังวิเคราะห์...</span>';
+    const history=DATA.aiLog.slice(-6).map(m=>({role:m.role==='user'?'user':'assistant',content:m.content}));
+    const ans=await callAI(q,history); DATA.aiLog.push({role:'user',content:q},{role:'assistant',content:ans});
+    schedulePush(); body.innerHTML=ans.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+  },
+  rAdd() {
+    const v=document.getElementById('view-add'); const p=this.pend;
+    let h=`<div class="type-tabs">
+      <button class="${p.type==='expense'?'active':''}" onclick="App.setType('expense')">💸 รายจ่าย</button>
+      <button class="${p.type==='income'?'active inc':''}" onclick="App.setType('income')">💵 รายรับ</button>
+    </div>
+    <div class="amt-display"><div class="num" id="amtD">${p.amount}</div></div>
+    <div class="keypad">
+      ${[1,2,3,4,5,6,7,8,9].map(n=>`<button onclick="App.kp(${n})">${n}</button>`).join('')}
+      <button onclick="App.kp('.')">.</button><button onclick="App.kp(0)">0</button><button class="del" onclick="App.kp('del')">⌫</button>
+    </div>`;
+    if(p.type==='expense'){
+      h+=`<div class="cat-grid">`;
+      DATA.categories.forEach(c=>h+=`<button class="cbt ${p.cat===c.id?'sel':''}" onclick="App.selCat('${c.id}')"><span>${c.icon}</span><span>${c.name}</span></button>`);
+      h+=`</div>`;
+    }
+    h+=`<button class="btn ${p.type==='income'?'btn-grn':''}" style="margin-top:10px" onclick="App.saveTxn()">✅ บันทึกรายการ</button>`;
+    v.innerHTML=h;
+  },
+  setType(t){this.pend.type=t;this.pend.cat=null;this.rAdd();},
+  selCat(id){this.pend.cat=id;this.rAdd();},
+  kp(k){
+    let s=String(this.pend.amount); if(s==='0')s='';
+    if(k==='del') s=s.slice(0,-1)||'0'; else if(k==='.'){if(!s.includes('.'))s+=s?'.':'0.';} else s+=k;
+    this.pend.amount=s; document.getElementById('amtD').textContent=s;
+  },
+  async saveTxn(){
+    const p=this.pend; const amt=parseFloat(p.amount); if(!amt||amt<=0)return;
+    DATA.transactions.unshift({id:'t'+Date.now(),date:td(),type:p.type,amount:amt,cat:p.cat,note:''});
+    this.pend={type:'expense',amount:'0',cat:null,date:td(),note:'',method:'cash'}; schedulePush(); this.go('dashboard');
+  },
+  rTxns(){
+    const v=document.getElementById('view-txns');
+    let h=`<div class="card-t">📋 รายการเดินบัญชี</div>`;
+    if(!DATA.transactions.length) h+=`<div class="empty">ไม่มีรายการข้อมูล</div>`;
+    else DATA.transactions.forEach(x=>{
+      const cat=gc(x.cat);
+      h+=`<div class="txn-item"><div>${cat?.icon||'🔖'} ${cat?.name||(x.type==='income'?'รายรับ':'อื่นๆ')}</div><div class="${x.type==='expense'?'exp':'inc'}">${fmt(x.amount)}</div></div>`;
+    });
+    v.innerHTML=h;
+  },
+  rDebt(){ document.getElementById('view-debt').innerHTML=`<div class="empty">💳 ระบบผ่อนชำระหนี้สิน</div>`; },
+  rSettings(){
+    const v=document.getElementById('view-settings'); const s=DATA.settings;
+    v.innerHTML=`<div class="card-t mb2">⚙️ ตั้งค่าคีย์บอทและการเงิน</div>
+    <div class="card">
+      <div class="form-row"><label>รายได้ต่อเดือน (฿)</label><input id="sInc" type="number" value="${s.income}"></div>
+      <div class="form-row"><label>เงินเก็บปัจจุบัน (฿)</label><input id="sSav" type="number" value="${s.savings}"></div>
+      <div class="form-row"><label>Gemini API Key 🤖</label><input id="sGemini" type="password" value="${localStorage.getItem('my_gemini_key')||''}" placeholder="AIzaSy..."></div>
+    </div>
+    <button class="btn mt2" onclick="App.saveSettings()">💾 บันทึกและซิงค์ข้อมูล</button>
+    <button class="btn btn-red mt2" onclick="App.logout()">🚪 ออกจากระบบ</button>`;
+  },
+  async saveSettings(){
+    localStorage.setItem('my_gemini_key', document.getElementById('sGemini').value.trim());
+    DATA.settings.income=parseFloat(document.getElementById('sInc').value)||0;
+    DATA.settings.savings=parseFloat(document.getElementById('sSav').value)||0;
+    DATA.settings.savingsUpdated=td(); await pushAll(); this.toast('บันทึกเรียบร้อย ✓'); this.rSettings();
+  },
+  logout(){ localStorage.removeItem(LSK); location.reload(); },
+  toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.className='toast show'; setTimeout(()=>el.className='toast',2000); }
+};
+
+async function boot() {
+  try {
+    const saved = localStorage.getItem(LSK);
+    if (saved) {
+      const { token } = JSON.parse(saved); const userRes = await SB.getUser(token);
+      if (userRes.id && !userRes.error) {
+        SESSION = { access_token: token, user: userRes }; await pullAll();
+        document.getElementById('loadingScreen').style.display='none'; document.getElementById('appWrap').style.display='block';
+        if(!DATA.categories.length) Onboard.start(); else App.showApp(); return;
+      }
+    }
+  } catch(e) {}
+  document.getElementById('loadingScreen').style.display='none'; document.getElementById('authScreen').style.display='flex';
+}
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>
