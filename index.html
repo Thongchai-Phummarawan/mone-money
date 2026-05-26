@@ -1231,7 +1231,7 @@ const App = {
       <div class="form-row"><label>รายได้ต่อเดือน (฿)</label><input id="sInc" type="number" value="${s.income}"></div>
       <div class="form-row"><label>เงินเก็บปัจจุบัน (฿)</label><input id="sSav" type="number" value="${s.savings}"></div>
       <div class="form-row"><label>เงินสำรองฉุกเฉิน (เดือน)</label><input id="sSafe" type="number" value="${s.safetyMonths}"></div>
-      <div class="form-row"><label>เกณฑ์หนี้ต่อรายได้ (%)</label><input id="sRatio" type="number" value="${s.debtThreshold}"></div>
+      <div class="form-row"><label>เกณฑ์หนี้ต่อรายได้ (%)</label><input id="sRatio" type="number" value="${s.debtThreshold}"></div><div class="form-row"><label>Gemini API Key 🤖 (คีย์ส่วนตัวเซฟลงเครื่องนี้)</label><input id="sGemini" type="password" value="${localStorage.getItem('my_gemini_key')||''}" placeholder="AIzaSy..."></div>
       <div class="form-row">
   <label>Gemini API Key 🤖 (คีย์ส่วนตัวเซฟลงเครื่องนี้)</label>
   <input id="sGemini" type="password" value="${localStorage.getItem('my_gemini_key')||''}" placeholder="AIzaSy...">
@@ -1258,7 +1258,7 @@ const App = {
     </div>
     <button class="btn btn-red" onclick="App.logout()">🚪 ออกจากระบบ</button>
     <div style="text-align:center;color:var(--dim);font-size:10px;padding:18px 0 4px">Mone-money v4.0 · Supabase Sync · AI-Powered</div>`;
-  },
+  },localStorage.setItem('my_gemini_key', document.getElementById('sGemini').value.trim());
   async saveSettings(){
     localStorage.setItem('my_gemini_key', document.getElementById('sGemini').value.trim());
     DATA.settings.income=parseFloat(document.getElementById('sInc').value)||0;
