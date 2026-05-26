@@ -457,6 +457,7 @@ async function pullAll() {
 }
 
 function schedulePush() { clearTimeout(syncTimer); syncTimer = setTimeout(pushAll, 1500); }
+
 const Auth = {
   showTab(tab) {
     document.getElementById('loginForm').style.display = tab==='login'?'block':'none';
@@ -666,13 +667,19 @@ const App = {
       <div class="form-row"><label>Gemini API Key 🤖</label><input id="sGemini" type="password" value="${localStorage.getItem('my_gemini_key')||''}" placeholder="AIzaSy..."></div>
     </div>
     <button class="btn mt2" onclick="App.saveSettings()">💾 บันทึกและซิงค์ข้อมูล</button>
-    <button class="btn btn-red mt2" onclick="App.logout()">🚪 ออกจากระบบ</button>`;
+    <button class="btn btn-red mt2" style="background:var(--red)" onclick="App.hardResetKey()">⚠️ ล้างรหัสคีย์ที่ค้างในเครื่อง</button>
+    <button class="btn btn-gray mt2" onclick="App.logout()">🚪 ออกจากระบบ</button>`;
   },
   async saveSettings(){
     localStorage.setItem('my_gemini_key', document.getElementById('sGemini').value.trim());
     DATA.settings.income=parseFloat(document.getElementById('sInc').value)||0;
     DATA.settings.savings=parseFloat(document.getElementById('sSav').value)||0;
     DATA.settings.savingsUpdated=td(); await pushAll(); this.toast('บันทึกเรียบร้อย ✓'); this.rSettings();
+  },
+  hardResetKey() {
+    localStorage.removeItem('my_gemini_key');
+    this.toast('ล้างคีย์เก่าสำเร็จ! กรุณากรอกคีย์ใหม่');
+    this.rSettings();
   },
   logout(){ localStorage.removeItem(LSK); location.reload(); },
   toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.className='toast show'; setTimeout(()=>el.className='toast',2000); }
@@ -695,4 +702,4 @@ async function boot() {
 document.addEventListener('DOMContentLoaded', boot);
 </script>
 </body>
-</html>  
+</html>
