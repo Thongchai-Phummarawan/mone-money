@@ -364,32 +364,31 @@ async function pullAll(){
 }
 function schedulePush(){clearTimeout(syncTimer);syncTimer=setTimeout(pushAll,1500);}
 
-// ── AI — calls Netlify Function (no key in HTML) ──────────────
-function buildSys(){
-  const{inc,exp,net}=mSum(curM());
-  const sav=calcSavings(); const debt=debtInfo();
-  const bc=byCat(curM());
-  const top=Object.entries(bc).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([id,v])=>`${gc(id)?.name||id}: ${fmt(v)}`).join(' | ');
-  const al=localRisk();
-  return `คุณคือ "Mona" AI ที่ปรึกษาการเงินส่วนตัว พูดภาษาไทย เป็นกันเอง ฉลาด ให้คำแนะนำที่ปฏิบัติได้จริง ใช้ emoji พอดี
-📊 ข้อมูลการเงินเรียลไทม์:
-• ชื่อ: ${PROFILE?.name||'ผู้ใช้'} | รายรับเดือนนี้: ${fmt(inc)} | รายจ่าย: ${fmt(exp)} | ส่วนต่าง: ${fmt(net)}
-• เงินเก็บ: ${fmt(sav)} | หนี้คงเหลือ: ${fmt(debt.rem)} | ผ่อน/เดือน: ${fmt(debt.monthly)}
-• รายจ่ายสูงสุด: ${top||'ยังไม่มี'} | สัญญาณเตือน: ${al.length?al.map(a=>a.title).join(', '):'ไม่มี'}
-ตอบกระชับ เจาะจง ใช้ตัวเลขจริง แนะนำสิ่งที่ทำได้ทันที`;
-}
-
+// ── AI — Pollinations.ai (FREE, No API Key, works on GitHub Pages) ──
 async function callAI(msg, history=[]){
   try{
-    const r=await fetch('/.netlify/functions/ai',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({message:msg,history:history.slice(-6),systemPrompt:buildSys()})
+    const messages = [
+      { role: 'system', content: buildSys() },
+      ...history.slice(-6).map(m=>({
+        role: m.role==='user'?'user':'assistant',
+        content: m.content
+      })),
+      { role: 'user', content: msg }
+    ];
+    const r = await fetch('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        messages,
+        model: 'openai',
+        private: true
+      })
     });
-    if(!r.ok){const e=await r.json();return 'เกิดข้อผิดพลาด: '+(e.error||'ไม่ทราบสาเหตุ');}
-    const d=await r.json();
-    return d.text||'ขอโทษ ตอบไม่ได้ตอนนี้';
-  }catch(e){return 'ไม่สามารถเชื่อมต่อ AI ได้';}
+    if(!r.ok) return 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+    return await r.text();
+  }catch(e){
+    return 'ไม่สามารถเชื่อมต่อ AI ได้';
+  }
 }
 
 // ── Auth ──────────────────────────────────────────────────────
