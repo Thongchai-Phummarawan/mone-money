@@ -238,7 +238,7 @@ main{padding:14px}
 <script>
 // ── Supabase (anon key is public by design) ──────────────────
 const SB_URL = 'https://oqcvisqguygqtodndsyp.supabase.co';
-const SB_ANON = [
+const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xY3Zpc3FndXlncXRvZG5kc3lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMjc0MDksImV4cCI6MjA5MzkwMzQwOX0.B-S5C_fNniKyp97aDYkRwGeR4DPEDNSaJHjUWycAxU8';
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
   'eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xY3Zpc3FndXlncXRvZG5kc3lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMjc0MDksImV4cCI6MjA5MzkwMzQwOX0',
   'B-S5C_fNniKyp97aDYkRwGeR4DPEDNSaJHjUWycAxU8'
@@ -365,7 +365,7 @@ async function pullAll(){
 function schedulePush(){clearTimeout(syncTimer);syncTimer=setTimeout(pushAll,1500);}
 
 // ── AI — Pollinations.ai (FREE, No API Key, works on GitHub Pages) ──
-async function callAI(msg, history=[]){
+async function Artifact(msg, history=[]){
   try{
     const messages = [
       { role: 'system', content: buildSys() },
